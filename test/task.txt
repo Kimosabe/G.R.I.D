@@ -1,0 +1,17 @@
+<task name = gg>
+	<command>
+		gg.exe
+		dir *
+	</command>
+  	#some other comment
+<input>
+	a.txt | b.txt
+	"c#c.txt" | "a!a.txt"
+	c_c.txt | a_a.txt
+</input>
+<output>
+	a.txt | b.txt
+	"c#c.txt" | "a!a.txt"
+	c_c.txt | a_a.txt
+</output>
+</task>
