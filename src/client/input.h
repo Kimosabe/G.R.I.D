@@ -12,4 +12,16 @@ bool read_net(std::vector<std::string> &addresses, std::vector< std::stack<int> 
 
 bool parse_task(grid_task &gt, std::istream &fin);
 
+class MyException : public std::exception
+{
+public:
+    MyException(const char* ww) : w(ww){};
+    const char* what()
+    {
+        return w;
+    }
+private:
+    const char* w;
+};
+
 #endif //INPUT_H_

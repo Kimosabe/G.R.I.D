@@ -2,6 +2,18 @@
 #include "grid_task.h"
 #include <iostream>
 
+class MyException : public std::exception
+{
+public:
+    MyException(const char* ww) : w(ww){};
+    const char* what()
+    {
+        return w;
+    }
+private:
+    const char* w;
+};
+
 grid_client::grid_client() : io_serv(), nodes(), thread_pool()
 {
 }
@@ -71,7 +83,7 @@ bool grid_client::apply_task(const grid_task &gt)
 		typedef std::vector< std::pair<std::string, std::string> > pair_name_vector;
 		for(pair_name_vector::const_iterator i = gt.input_files().begin(); i < gt.input_files().end(); ++i)
 			if( this->nodes[target_node]->send_file(i->first, i->second) == false)
-				throw std::exception( (std::string("Error : sending ") + i->first + std::string(" failed")).c_str() );
+				throw MyException( (std::string("Error : sending ") + i->first + std::string(" failed")).c_str() );
 		//
 		return true;
 	}

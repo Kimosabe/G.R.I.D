@@ -15,7 +15,8 @@ int main(int argc, char *argv[])
 		std::vector<std::string> addresses;
 		std::vector< std::stack<int> > ports;
 		if( !read_net(addresses, ports) )
-			throw std::exception("Error : reading grid net description failed");
+			//throw std::exception();
+            throw new MyException("Error : reading grid net description failed");
 
 		grid_client gc;
 		gc.run(addresses, ports);

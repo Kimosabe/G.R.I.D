@@ -66,7 +66,8 @@ bool parse_task(grid_task &gt, std::istream &fin)
 	try{
 		grid_task temp;
 		if(fin.eof() || fin.fail())
-			throw std::exception("Error : invalid file descriptor (task parsing)");
+			//throw MyException("Error : invalid file descriptor (task parsing)");
+            throw MyException("Error : invalid file descriptor (task parsing)");
 
 		bool task_started = false, task_finished = false;
 		char buf[BUF_SIZE];
@@ -92,7 +93,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					task_started = true;
 				}
 				else
-					throw std::exception("Error : unexpeted internal task definition");
+					throw MyException("Error : unexpeted internal task definition");
 
 			//******************************** </task> ****************************
 			else if( boost::regex_match(sbuf, re_task_end) )
@@ -102,7 +103,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					break;
 				}
 				else
-					throw std::exception("Error : unexpected end of task clause");
+					throw MyException("Error : unexpected end of task clause");
 
 			//******************************** <command> ****************************
 			else if( boost::regex_match(sbuf, re_cmd_begin) )
@@ -129,7 +130,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					}while(!fin.eof() && !cmd_finished);
 
 					if( !cmd_finished )
-						throw std::exception("Error : unexpected end of file in command section");
+						throw MyException("Error : unexpected end of file in command section");
 				}
 				else
 					std::cerr << "Warning : command definition out of task will be ignored";
@@ -162,7 +163,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					}while(!fin.eof() && !inp_finished);
 
 					if( !inp_finished )
-						throw std::exception("Error : unexpected end of file in input section");
+						throw MyException("Error : unexpected end of file in input section");
 				}
 				else
 					std::cerr << "Warning : input definition out of task will be ignored";
@@ -195,7 +196,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					}while(!fin.eof() && !outp_finished);
 
 					if( !outp_finished )
-						throw std::exception("Error : unexpected end of file in output section");
+						throw MyException("Error : unexpected end of file in output section");
 				}
 				else
 					std::cerr << "Warning : output definition out of task will be ignored";
@@ -211,7 +212,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 		else
 			return false;
 	}
-	catch(const std::exception &ex){
+	catch(const MyException &ex){
 		std::cerr << ex.what() << std::endl;
 	}
 	return false;

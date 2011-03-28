@@ -1,6 +1,18 @@
 #include "file_transferer.h"
 #include <memory.h>
 
+class MyException : public std::exception
+{
+public:
+    MyException(const char* ww) : w(ww){};
+    const char* what()
+    {
+        return w;
+    }
+private:
+    const char* w;
+};
+
 const boost::regex file_transferer::re_download = boost::regex("(?x)(^<file \\s+ parts=(\\d+) \\s+ partsize=(\\d+) \\s+ lastpartsize=(\\d+) \\s+ name=\"( (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ )\" >$)");
 
 const boost::regex file_transferer::re_upload = boost::regex("(?x)(^<upload_request \\s+ local_name=\"( (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ )\" \\s+ remote_name=\"( (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ )\" >$)");
@@ -82,7 +94,8 @@ bool file_transferer::recieve_file(const std::string &request, boost::asio::ip::
 		ofstream fout(fname.c_str(), ios_base::binary);
 		if( !fout ){
 			string errmes = string("Error : cannot open ") + fname;
-			throw exception(errmes.c_str());
+			//throw exception(errmes.c_str());
+            throw MyException(errmes.c_str());
 		}
 
 		delete[] file_data;
@@ -121,7 +134,8 @@ bool file_transferer::send_file(const std::string &local_name, const std::string
 		ifstream fin(local_name.c_str(), ios_base::binary | ios_base::ate);
 		if( !fin ){
 			string errmes = string("Error : cannot open file ") + local_name;
-			throw std::exception(errmes.c_str());
+			//throw std::exception(errmes.c_str());
+            throw MyException(errmes.c_str());
 		}
 
 		const size_t file_size = fin.tellg();
