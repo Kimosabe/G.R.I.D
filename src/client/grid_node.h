@@ -12,7 +12,6 @@
 #include <vector>
 #include <string>
 #include <stack>
-#include <exception>
 #include "file_transferer.h"
 
 class grid_node : private boost::noncopyable{

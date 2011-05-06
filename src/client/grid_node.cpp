@@ -1,8 +1,6 @@
 #include "grid_node.h"
 #include <iostream>
 #include <fstream>
-#include <exception>
-#include <stdexcept>
 #include <boost/lexical_cast.hpp>
 
 using namespace boost;

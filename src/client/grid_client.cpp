@@ -100,9 +100,9 @@ void grid_client::debug_method()
 	for( vector<node_ptr>::iterator i = nodes.begin(); i < nodes.end(); ++i )
 		if( (*i)->is_active() )
 		{
-			//(*i)->send_file(std::string("gg.exe"), std::string("gg.exe"));
-			(*i)->request_file(std::string("gg2.txt"), std::string("gg2.txt"));
-			(*i)->send_command(std::string("gg.exe"));
-			(*i)->request_file(std::string("gg2.txt"), std::string("gg2.txt"));
+			(*i)->send_file(std::string("..\\..\\..\\test\\gg.txt"), std::string("gg1.txt"));
+			//(*i)->request_file(std::string("gg2.txt"), std::string("gg2.txt"));
+			//(*i)->send_command(std::string("gg.exe"));
+			//(*i)->request_file(std::string("gg2.txt"), std::string("gg2.txt"));
 		}
 }

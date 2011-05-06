@@ -223,6 +223,10 @@
 				RelativePath="..\..\..\src\client\input.h"
 				>
 			</File>
+			<File
+				RelativePath="..\..\..\src\client\simple_exception.hpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"

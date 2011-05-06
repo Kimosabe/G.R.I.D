@@ -1,11 +1,11 @@
 #include "input.h"
 #include "grid_task.h"
+#include "simple_exception.hpp"
 #include <fstream>
 #include <sstream>
-#include <exception>
 #include <boost/regex.hpp>
 
-#define NET_DESCRIPTION_FILE "net.dat"
+#define NET_DESCRIPTION_FILE "..\\..\\..\\test\\net.dat"
 #define BUF_SIZE 2048
 
 inline bool is_ws(const char x){
@@ -66,8 +66,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 	try{
 		grid_task temp;
 		if(fin.eof() || fin.fail())
-			//throw MyException("Error : invalid file descriptor (task parsing)");
-            throw MyException("Error : invalid file descriptor (task parsing)");
+            throw simple_exception("Error : invalid file descriptor (task parsing)");
 
 		bool task_started = false, task_finished = false;
 		char buf[BUF_SIZE];
@@ -93,7 +92,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					task_started = true;
 				}
 				else
-					throw MyException("Error : unexpeted internal task definition");
+					throw simple_exception("Error : unexpeted internal task definition");
 
 			//******************************** </task> ****************************
 			else if( boost::regex_match(sbuf, re_task_end) )
@@ -103,7 +102,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					break;
 				}
 				else
-					throw MyException("Error : unexpected end of task clause");
+					throw simple_exception("Error : unexpected end of task clause");
 
 			//******************************** <command> ****************************
 			else if( boost::regex_match(sbuf, re_cmd_begin) )
@@ -130,7 +129,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					}while(!fin.eof() && !cmd_finished);
 
 					if( !cmd_finished )
-						throw MyException("Error : unexpected end of file in command section");
+						throw simple_exception("Error : unexpected end of file in command section");
 				}
 				else
 					std::cerr << "Warning : command definition out of task will be ignored";
@@ -163,7 +162,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					}while(!fin.eof() && !inp_finished);
 
 					if( !inp_finished )
-						throw MyException("Error : unexpected end of file in input section");
+						throw simple_exception("Error : unexpected end of file in input section");
 				}
 				else
 					std::cerr << "Warning : input definition out of task will be ignored";
@@ -196,7 +195,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 					}while(!fin.eof() && !outp_finished);
 
 					if( !outp_finished )
-						throw MyException("Error : unexpected end of file in output section");
+						throw simple_exception("Error : unexpected end of file in output section");
 				}
 				else
 					std::cerr << "Warning : output definition out of task will be ignored";
@@ -212,7 +211,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 		else
 			return false;
 	}
-	catch(const MyException &ex){
+	catch(const std::exception &ex){
 		std::cerr << ex.what() << std::endl;
 	}
 	return false;

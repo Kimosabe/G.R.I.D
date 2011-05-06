@@ -2,6 +2,7 @@
 #include "grid_client.h"
 #include "input.h"
 #include "grid_task.h"
+#include "simple_exception.hpp"
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -15,8 +16,7 @@ int main(int argc, char *argv[])
 		std::vector<std::string> addresses;
 		std::vector< std::stack<int> > ports;
 		if( !read_net(addresses, ports) )
-			//throw std::exception();
-            throw new MyException("Error : reading grid net description failed");
+            throw simple_exception("Error : reading grid net description failed");
 
 		grid_client gc;
 		gc.run(addresses, ports);

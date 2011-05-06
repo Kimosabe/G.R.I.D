@@ -8,7 +8,7 @@ session::session(boost::asio::io_service& io_service) : socket_(io_service), fil
 
 session::~session()
 {
-	//TODO: kill them all
+	// kill them all
 	child_prcosses.clear();
 }
 
@@ -54,7 +54,6 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 			else
 				std::cout << "Unknown : " << request << std::endl;
 			*/
-			
 		}
 		this->start();
 	}
