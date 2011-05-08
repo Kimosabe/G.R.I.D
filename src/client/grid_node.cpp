@@ -8,7 +8,7 @@ using namespace boost::asio;
 
 grid_node::grid_node(io_service &io_serv_, const std::string &address_, 
 					 const std::stack<int> &ports_) : io_serv(io_serv_), socket_(io_serv_),
-					 active(false), address(address_), file_transf()
+					 active(false), address(address_), file_transf(), streambuf_()
 {
 	if( ports_.size() == 0 ) return;
 	std::stack<int> ports(ports_);
@@ -34,8 +34,7 @@ void grid_node::handle_connect(const system::error_code &err,
 	{
 		active = true;
 		std::cout << "connected\n";
-		socket_.async_read_some(boost::asio::buffer(buf, maxsize), boost::bind(&grid_node::handle_read, 
-			this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
+		this->start();
 	}
 
 	//следующий endpoint
@@ -73,6 +72,13 @@ grid_node::~grid_node()
 {
 }
 
+void grid_node::start()
+{
+	streambuf_.consume(streambuf_.size());
+	boost::asio::async_read_until(socket_, streambuf_, '\v', boost::bind(&grid_node::handle_read,
+		this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+}
+
 bool grid_node::send_file(const std::string &local_name, const std::string &remote_name)
 {
 	if( !active ) return false;
@@ -83,7 +89,7 @@ bool grid_node::send_command(const std::string &command)
 {
 	if( !active ) return false;
 
-	const std::string message = std::string("<command = ") + command + std::string( ">\n");
+	const std::string message = std::string("<command = ") + command + std::string( ">\v");
 	try{
 		boost::asio::write(socket_, boost::asio::buffer(message.c_str(), message.size()));
 		return true;
@@ -107,14 +113,18 @@ void grid_node::handle_read(const boost::system::error_code& error, size_t bytes
 	{
 		if( bytes_transferred > 0 )
 		{
-			const std::string request(buf, bytes_transferred - 1);
+			std::istream ss(&streambuf_);
+			std::string request;
 
-			if( file_transf.recieve_file(request, socket_) )
-				std::cout << "file accepted" << std::endl;
+			while( !ss.eof() )
+			{
+				std::getline(ss, request, '\v');
+				if( file_transf.recieve_file(request, socket_) )
+					std::cout << "file accepted" << std::endl;
+			}
 		}
 
-		socket_.async_read_some(boost::asio::buffer(buf, maxsize), boost::bind(&grid_node::handle_read, 
-			this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred) );
+		this->start();
 	}
 	else
 		active = false;

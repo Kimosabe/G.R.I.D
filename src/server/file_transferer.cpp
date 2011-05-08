@@ -49,7 +49,7 @@ bool file_transferer::request_file(const std::string &local_name, const std::str
 	try{
 		//меняем ме стами local_name и remote_name, потому что на удаленном хосте все будет наоборот
 		const std::string header = std::string("<upload_request local_name=\"") + remote_name + 
-			std::string("\" remote_name=\"") + local_name + std::string("\">\n");
+			std::string("\" remote_name=\"") + local_name + std::string("\">\v");
 
 		boost::asio::write(socket_, boost::asio::buffer(header, header.size()));
 		return true;
@@ -135,7 +135,7 @@ bool file_transferer::send_file(const std::string &local_name, const std::string
 		const string header = string("<file parts=") + boost::lexical_cast<string>(parts)
 			+ string(" partsize=") + boost::lexical_cast<string>(buf_size)
 			+ string(" lastpartsize=") + boost::lexical_cast<string>(last_part_size)
-			+ string(" name=\"") + remote_name + string("\">\n");
+			+ string(" name=\"") + remote_name + string("\">\v");
 
 		fin.seekg(ios_base::beg);
 		boost::asio::write(socket_, boost::asio::buffer(header, header.size()));

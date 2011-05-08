@@ -1,18 +1,7 @@
 #include "grid_client.h"
 #include "grid_task.h"
+#include "simple_exception.hpp"
 #include <iostream>
-
-class MyException : public std::exception
-{
-public:
-    MyException(const char* ww) : w(ww){};
-    const char* what()
-    {
-        return w;
-    }
-private:
-    const char* w;
-};
 
 grid_client::grid_client() : io_serv(), nodes(), thread_pool()
 {
@@ -83,7 +72,7 @@ bool grid_client::apply_task(const grid_task &gt)
 		typedef std::vector< std::pair<std::string, std::string> > pair_name_vector;
 		for(pair_name_vector::const_iterator i = gt.input_files().begin(); i < gt.input_files().end(); ++i)
 			if( this->nodes[target_node]->send_file(i->first, i->second) == false)
-				throw MyException( (std::string("Error : sending ") + i->first + std::string(" failed")).c_str() );
+				throw simple_exception(std::string("Error : sending ") + i->first + std::string(" failed"));
 		//
 		return true;
 	}
@@ -97,12 +86,12 @@ void grid_client::debug_method()
 {
 	using 
 		namespace std;
-	for( vector<node_ptr>::iterator i = nodes.begin(); i < nodes.end(); ++i )
+	for(vector<node_ptr>::iterator i = nodes.begin(); i < nodes.end(); ++i)
 		if( (*i)->is_active() )
 		{
 			(*i)->send_file(std::string("..\\..\\..\\test\\gg.txt"), std::string("gg1.txt"));
-			//(*i)->request_file(std::string("gg2.txt"), std::string("gg2.txt"));
-			//(*i)->send_command(std::string("gg.exe"));
-			//(*i)->request_file(std::string("gg2.txt"), std::string("gg2.txt"));
+			(*i)->request_file(std::string("gg1.txt"), std::string("gg1.txt"));
+			(*i)->send_command(std::string("..\\test\\gg.exe"));
+			(*i)->request_file(std::string("gg2.txt"), std::string("gg1.txt"));
 		}
 }

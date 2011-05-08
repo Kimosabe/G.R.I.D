@@ -20,6 +20,7 @@ private:
 	boost::asio::ip::tcp::socket socket_;
 	std::string address;
 	file_transferer file_transf;
+	boost::asio::streambuf streambuf_;
 	bool active;
 
 	const static size_t maxsize = 4096;
@@ -29,6 +30,7 @@ private:
 		boost::asio::ip::tcp::resolver::iterator endpoint_iterator,
 		std::stack<int> &ports);
 
+	void start();
 	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
 public:
 	grid_node(boost::asio::io_service& io_serv_, const std::string &address_, 
