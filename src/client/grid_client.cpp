@@ -69,10 +69,7 @@ bool grid_client::apply_task(const grid_task &gt)
 		const int target_node = gt.node() == GRID_ANY_NODE ? 0 : gt.node();
 		//
 		//
-		typedef std::vector< std::pair<std::string, std::string> > pair_name_vector;
-		for(pair_name_vector::const_iterator i = gt.input_files().begin(); i < gt.input_files().end(); ++i)
-			if( this->nodes[target_node]->send_file(i->first, i->second) == false)
-				throw simple_exception(std::string("Error : sending ") + i->first + std::string(" failed"));
+		return nodes[target_node]->apply_task(gt);
 		//
 		return true;
 	}

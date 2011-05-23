@@ -4,6 +4,13 @@
 #include <string>
 #include <vector>
 #include <utility>
+#include <msgpack.hpp>
+
+#if defined(_DEBUG) || defined(DEBUG)
+#pragma comment(lib, "msgpack-mtddll.lib")
+#else
+#pragma comment (lib, "msgpack-mt.lib")
+#endif //DEBUG
 
 #define GRID_ANY_NODE -1
 
@@ -17,6 +24,8 @@ private:
 	int node_;
 	std::string work_dir_, name_;
 public:
+	MSGPACK_DEFINE(commands_, input_files_, output_files_, node_, work_dir_, name_);
+
 	grid_task();
 	grid_task(const grid_task &gt);
 	virtual ~grid_task();

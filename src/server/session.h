@@ -3,13 +3,13 @@
 
 #include "file_transferer.h"
 #include "exec.h"
+#include "grid_task.h"
 #include <boost/asio/streambuf.hpp>
 
 class session{
 private:
-	boost::asio::ip::tcp::socket socket_;
-	//64 kb
-	const static size_t max_length = 65536;
+	boost::asio::ip::tcp::socket socket_;	
+	const static size_t max_length = 65536; //64 kb
 	char data_[max_length];
 
 	boost::asio::streambuf streambuf_;
@@ -20,6 +20,7 @@ private:
 
 	//TODO: replace with task accepter
 	bool accept_command(const std::string &request);
+	void apply_task(const grid_task &task);
 public:
 	session(boost::asio::io_service& io_service);
 	virtual ~session();

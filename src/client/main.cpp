@@ -21,14 +21,14 @@ int main(int argc, char *argv[])
 		grid_client gc;
 		gc.run(addresses, ports);
 		
-		gc.debug_method();
+		//gc.debug_method();
 
-		std::cin.unsetf( std::ios_base::skipws );
-		char c = std::cin.get();
-		gc.stop();
-/*
+		//std::cin.unsetf( std::ios_base::skipws );
+		//char c = std::cin.get();
+		//gc.stop();
+
 		grid_task gt;
-		std::ifstream fin("task.txt");
+		std::ifstream fin("..\\..\\test\\task.txt");
 		if( !fin ) throw std::exception("Error : cannot open task.txt");
 		if( parse_task(gt, fin) )
 		{
@@ -42,9 +42,11 @@ int main(int argc, char *argv[])
 			std::cout << std::endl;
 			for(std::vector< std::pair< std::string, std::string > >::const_iterator i = gt.output_files().begin(); i < gt.output_files().end(); ++i)
 				std::cout << i->first << '\t' << i->second << std::endl;
+
+			gc.apply_task(gt);
 		}
 		fin.close();
-*/
+
 	}
 	catch(const std::exception &ex)
 	{

@@ -42,9 +42,20 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 				{
 					//std::cout << "<request> " << request << " </request>" << std::endl;
 
-					std::string local_name, remote_name;
+					// tying to deserialize grid_task
+					try{
+						msgpack::unpacked msg;
+						msgpack::unpack(&msg, request.data(), request.size());
+						grid_task task = msg.get().convert();
+						apply_task(task);
+						continue;
+					}
+					catch(const std::exception &){
+					}
 
-					//TODO: here must be normal message parser
+					//recieveing / sending files
+
+					std::string local_name, remote_name;
 					if( file_tr.recieve_file(request, socket_) )
 						std::cout << "file accepted\n";
 					else if( file_tr.is_upload_request(request, local_name, remote_name) )
@@ -52,8 +63,8 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 						std::cout << "upload_request : " << request << std::endl; 
 						file_tr.send_file(local_name, remote_name, socket_);
 					}
-					else if( accept_command(request) )
-						std::cout << "command : " << request << std::endl;
+					//else if( accept_command(request) )
+					//	std::cout << "command : " << request << std::endl;
 					else
 						std::cout << "Unknown : " << request << std::endl;
 				}
@@ -94,4 +105,10 @@ bool session::accept_command(const std::string &request)
 	}
 
 	return true;
+}
+
+void session::apply_task(const grid_task &task)
+{
+	std::cout << "applying " << task.name() << std::endl;
+	std::cout.flush();
 }

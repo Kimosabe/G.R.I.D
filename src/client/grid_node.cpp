@@ -2,11 +2,9 @@
 #include <iostream>
 #include <fstream>
 #include <boost/lexical_cast.hpp>
+#include "grid_task.h"
 
-using namespace boost;
-using namespace boost::asio;
-
-grid_node::grid_node(io_service &io_serv_, const std::string &address_, 
+grid_node::grid_node(boost::asio::io_service &io_serv_, const std::string &address_, 
 					 const std::stack<int> &ports_) : io_serv(io_serv_), socket_(io_serv_),
 					 active(false), address(address_), file_transf(), streambuf_()
 {
@@ -14,19 +12,19 @@ grid_node::grid_node(io_service &io_serv_, const std::string &address_,
 	std::stack<int> ports(ports_);
 	int port = ports.top();
 	ports.pop();
-	ip::tcp::resolver resolver_(io_serv);
-	ip::tcp::resolver::query query_(ip::tcp::v4(), address.data(), 
-		lexical_cast<std::string>(port).data());
+	boost::asio::ip::tcp::resolver resolver_(io_serv);
+	boost::asio::ip::tcp::resolver::query query_(boost::asio::ip::tcp::v4(), address.data(), 
+		boost::lexical_cast<std::string>(port).data());
 
-	system::error_code err;
-	ip::tcp::resolver::iterator iter = resolver_.resolve(query_, err);
+	boost::system::error_code err;
+	boost::asio::ip::tcp::resolver::iterator iter = resolver_.resolve(query_, err);
 
-	socket_.async_connect(*iter, bind(&grid_node::handle_connect, this,
-			placeholders::error, ++iter, ports));
+	socket_.async_connect(*iter, boost::bind(&grid_node::handle_connect, this,
+			boost::asio::placeholders::error, ++iter, ports));
 }
 
-void grid_node::handle_connect(const system::error_code &err,
-							   ip::tcp::resolver::iterator endpoint_iterator,
+void grid_node::handle_connect(const boost::system::error_code &err,
+							   boost::asio::ip::tcp::resolver::iterator endpoint_iterator,
 							   std::stack<int> &ports)
 {
 	//подконнектились
@@ -38,12 +36,12 @@ void grid_node::handle_connect(const system::error_code &err,
 	}
 
 	//следующий endpoint
-	else if( endpoint_iterator != ip::tcp::resolver::iterator() )
+	else if( endpoint_iterator != boost::asio::ip::tcp::resolver::iterator() )
 	{
-		ip::tcp::endpoint endpoint = *endpoint_iterator;
+		boost::asio::ip::tcp::endpoint endpoint = *endpoint_iterator;
 		socket_.async_connect(endpoint,
-			bind(&grid_node::handle_connect, this,
-			placeholders::error, ++endpoint_iterator, ports));
+			boost::bind(&grid_node::handle_connect, this,
+			boost::asio::placeholders::error, ++endpoint_iterator, ports));
 	}
 
 	//пробуем следущий порт
@@ -51,14 +49,14 @@ void grid_node::handle_connect(const system::error_code &err,
 	{
 		int port = ports.top();
 		ports.pop();
-		ip::tcp::resolver resolver_(io_serv);
-		ip::tcp::resolver::query query_(ip::tcp::v4(), address.data(), 
-			lexical_cast<std::string>(port).data());
+		boost::asio::ip::tcp::resolver resolver_(io_serv);
+		boost::asio::ip::tcp::resolver::query query_(boost::asio::ip::tcp::v4(), address.data(), 
+			boost::lexical_cast<std::string>(port).data());
 
-		system::error_code err;
-		ip::tcp::resolver::iterator iter = resolver_.resolve(query_, err);
-		socket_.async_connect(*iter, bind(&grid_node::handle_connect, this,
-			placeholders::error, ++iter, ports));
+		boost::system::error_code err;
+		boost::asio::ip::tcp::resolver::iterator iter = resolver_.resolve(query_, err);
+		socket_.async_connect(*iter, boost::bind(&grid_node::handle_connect, this,
+			boost::asio::placeholders::error, ++iter, ports));
 	}
 
 #if defined(_DEBUG) || defined(DEBUG)
@@ -130,3 +128,22 @@ void grid_node::handle_read(const boost::system::error_code& error, size_t bytes
 		active = false;
 }
 
+bool grid_node::apply_task(const grid_task &task)
+{
+	if( active )
+	{
+		try{
+			msgpack::sbuffer sbuf;
+			msgpack::pack(&sbuf, task);
+			std::string message(sbuf.data(), sbuf.size());
+			message.append("\v");
+			boost::asio::write(socket_, boost::asio::buffer(message.data(), message.size()));
+			return true;
+		}
+		catch(const std::exception &ex){
+			std::cerr << ex.what() << std::endl;
+		}
+		return false;
+	}
+	return false;
+}

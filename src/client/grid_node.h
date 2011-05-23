@@ -14,6 +14,8 @@
 #include <stack>
 #include "file_transferer.h"
 
+class grid_task;
+
 class grid_node : private boost::noncopyable{
 private:
 	boost::asio::io_service &io_serv;
@@ -39,9 +41,14 @@ public:
 
 	bool is_active() const			{ return active; };
 
+	//these 3 functions should be removed in release
+	//------------------------------------------------
 	bool send_file(const std::string &local_name, const std::string &remote_name);
 	bool send_command(const std::string &command);
 	bool request_file(const std::string &local_name, const std::string &remote_name);
+	//------------------------------------------------
+
+	bool apply_task(const grid_task &task);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;
