@@ -1,2 +1,6 @@
 Release/*
 Debug/*
+*.user
+*.pdb
+*.ncb
+*.suo
