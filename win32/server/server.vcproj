@@ -193,6 +193,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\server\server.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\session.cpp"
 				>
 			</File>

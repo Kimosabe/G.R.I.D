@@ -23,10 +23,6 @@ int main(int argc, char *argv[])
 		
 		//gc.debug_method();
 
-		//std::cin.unsetf( std::ios_base::skipws );
-		//char c = std::cin.get();
-		//gc.stop();
-
 		grid_task gt;
 		std::ifstream fin("..\\..\\test\\task.txt");
 		if( !fin ) throw std::exception("Error : cannot open task.txt");
@@ -44,8 +40,16 @@ int main(int argc, char *argv[])
 				std::cout << i->first << '\t' << i->second << std::endl;
 
 			gc.apply_task(gt);
+			gt.rename(std::string("newtask1"));
+			gc.apply_task(gt);
+			gt.rename(std::string("newtask2"));
+			gc.apply_task(gt);
 		}
 		fin.close();
+
+		std::cin.unsetf( std::ios_base::skipws );
+		char c = std::cin.get();
+		gc.stop();
 
 	}
 	catch(const std::exception &ex)

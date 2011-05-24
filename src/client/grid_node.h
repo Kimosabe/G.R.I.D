@@ -48,7 +48,7 @@ public:
 	bool request_file(const std::string &local_name, const std::string &remote_name);
 	//------------------------------------------------
 
-	bool apply_task(const grid_task &task);
+	void apply_task(const grid_task &task);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;

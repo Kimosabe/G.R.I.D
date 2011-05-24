@@ -61,7 +61,7 @@ void grid_node::handle_connect(const boost::system::error_code &err,
 
 #if defined(_DEBUG) || defined(DEBUG)
 	else
-		std::cerr << "Error: (handle_connect)" << err.message() << "\n";
+		std::cerr << "Error: (handle_connect)" << err.message() << std::endl;
 #endif
 
 }
@@ -89,7 +89,7 @@ bool grid_node::send_command(const std::string &command)
 
 	const std::string message = std::string("<command = ") + command + std::string( ">\v");
 	try{
-		boost::asio::write(socket_, boost::asio::buffer(message.c_str(), message.size()));
+		boost::asio::write(socket_, boost::asio::buffer(message.c_str(), message.size()+1));
 		return true;
 	}
 	catch( const std::exception &ex ){
@@ -128,22 +128,16 @@ void grid_node::handle_read(const boost::system::error_code& error, size_t bytes
 		active = false;
 }
 
-bool grid_node::apply_task(const grid_task &task)
+void grid_node::apply_task(const grid_task &task)
 {
-	if( active )
-	{
-		try{
-			msgpack::sbuffer sbuf;
-			msgpack::pack(&sbuf, task);
-			std::string message(sbuf.data(), sbuf.size());
-			message.append("\v");
-			boost::asio::write(socket_, boost::asio::buffer(message.data(), message.size()));
-			return true;
-		}
-		catch(const std::exception &ex){
-			std::cerr << ex.what() << std::endl;
-		}
-		return false;
+	try{
+		msgpack::sbuffer sbuf;
+		msgpack::pack(&sbuf, task);
+		std::string message(sbuf.data(), sbuf.size());
+		message.append("\v");
+		boost::asio::write(socket_, boost::asio::buffer(message.data(), message.size()));
 	}
-	return false;
+	catch(std::exception &ex){
+		throw ex;
+	}
 }

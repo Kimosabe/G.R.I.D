@@ -20,9 +20,8 @@ boost::asio::ip::tcp::socket& session::socket()
 void session::start()
 {
 	streambuf_.consume(streambuf_.size());
-	boost::asio::async_read_until(socket_, streambuf_, '\v',
-		boost::bind(&session::handle_read, this, boost::asio::placeholders::error,
-			boost::asio::placeholders::bytes_transferred));
+	boost::asio::async_read_until(socket_, streambuf_, '\v', boost::bind(&session::handle_read, 
+		this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
 }
 
 void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
@@ -42,31 +41,40 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 				{
 					//std::cout << "<request> " << request << " </request>" << std::endl;
 
-					// tying to deserialize grid_task
-					try{
-						msgpack::unpacked msg;
-						msgpack::unpack(&msg, request.data(), request.size());
-						grid_task task = msg.get().convert();
-						apply_task(task);
-						continue;
-					}
-					catch(const std::exception &){
-					}
-
-					//recieveing / sending files
+					// запросы на получение / отправку файлов
 
 					std::string local_name, remote_name;
 					if( file_tr.recieve_file(request, socket_) )
+					{
 						std::cout << "file accepted\n";
+						continue;
+					}
 					else if( file_tr.is_upload_request(request, local_name, remote_name) )
 					{
 						std::cout << "upload_request : " << request << std::endl; 
 						file_tr.send_file(local_name, remote_name, socket_);
+						continue;
+					}
+					else
+					{
+						msgpack::unpacked msg;
+						msgpack::unpack(&msg, request.data(), request.size());
+
+						// пробуем десериализовать объект типа grid_task
+						try{
+							grid_task task = msg.get().convert();
+							apply_task(task);
+							continue;
+						}
+						catch(const std::exception &){
+						}
+
+						// здесь могут быть попытки десериализовать сообщения другого рода
 					}
 					//else if( accept_command(request) )
 					//	std::cout << "command : " << request << std::endl;
-					else
-						std::cout << "Unknown : " << request << std::endl;
+
+					std::cout << "Unknown : " << request << std::endl;
 				}
 			}
 		}

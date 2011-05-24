@@ -13,6 +13,7 @@ void grid_client::stop()
 	io_serv_.stop();
 	using namespace boost;
 	for(std::vector<thread_ptr>::iterator i = thread_pool_.begin(); i < thread_pool_.end(); ++i)
+		//(*i)->interrupt();
 		(*i)->join();
 	thread_pool_.clear();
 }
@@ -108,9 +109,9 @@ void grid_client::debug_method()
 	for(vector<node_ptr>::iterator i = nodes_.begin(); i < nodes_.end(); ++i)
 		if( (*i)->is_active() )
 		{
-			(*i)->send_file(std::string("..\\..\\..\\test\\gg.txt"), std::string("gg1.txt"));
+			(*i)->send_file(std::string("..\\..\\test\\gg.txt"), std::string("gg1.txt"));
 			(*i)->request_file(std::string("gg1.txt"), std::string("gg1.txt"));
-			(*i)->send_command(std::string("..\\test\\gg.exe"));
+			//(*i)->send_command(std::string("..\\test\\gg.exe"));
 			(*i)->request_file(std::string("gg2.txt"), std::string("gg1.txt"));
 		}
 }
