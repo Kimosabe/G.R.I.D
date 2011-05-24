@@ -215,6 +215,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\server\server.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\session.h"
 				>
 			</File>
