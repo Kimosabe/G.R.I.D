@@ -14,8 +14,17 @@
 
 #define GRID_ANY_NODE -1
 
+/**
+ * задание дл€ грид системы
+ * есть множество входных файлов, команд и выходных файлов
+ * сначала все входные файлы отсылаютс€ на исполнающий узел
+ * затем последовательно выполн€ютс€ все команды
+ * и выходные файлы отправл€ютс€ обратно
+ * задание без имени считаетс€ пустым
+ */
+
 class grid_task{
-private:
+protected:
 	typedef std::vector< std::pair<std::string, std::string> > pair_name_vector; 
 
 	std::vector<std::string> commands_;

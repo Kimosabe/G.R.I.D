@@ -189,6 +189,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\server\grid_task_execution.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\main.cpp"
 				>
 			</File>
@@ -216,6 +220,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\shared\grid_task.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\server\grid_task_execution.h"
 				>
 			</File>
 			<File
