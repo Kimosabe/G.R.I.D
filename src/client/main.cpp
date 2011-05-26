@@ -40,10 +40,10 @@ int main(int argc, char *argv[])
 				std::cout << i->first << '\t' << i->second << std::endl;
 
 			gc.apply_task(gt);
-			gt.rename(std::string("newtask1"));
-			gc.apply_task(gt);
-			gt.rename(std::string("newtask2"));
-			gc.apply_task(gt);
+			//gt.rename(std::string("newtask1"));
+			//gc.apply_task(gt);
+			//gt.rename(std::string("newtask2"));
+			//gc.apply_task(gt);
 		}
 		fin.close();
 

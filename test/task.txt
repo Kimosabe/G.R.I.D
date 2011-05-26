@@ -1,7 +1,7 @@
 <task name = gg>
 	<command>
-		gg.exe
-		dir *
+		..\test\gg.exe
+		dir
 	</command>
   	#some other comment
 <input>

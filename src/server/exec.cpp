@@ -34,6 +34,18 @@ pid_t execute(const std::string &command)
 	return INVALID_HANDLE_VALUE;
 }
 
+bool wait_process(pid_t pid, int mseconds)
+{
+	return WaitForSingleObject(pid, mseconds) != WAIT_TIMEOUT;
+}
+
+void terminate_process(pid_t &pid)
+{
+	TerminateProcess(pid, 1);
+	pid = INVALID_PID;
+}
+
+
 #else
 
 #include <cstdlib>

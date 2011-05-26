@@ -1,4 +1,5 @@
 #include "session.h"
+#include "grid_task_execution.h"
 #include <sstream>
 
 session::session(boost::asio::io_service& io_service) : socket_(io_service), file_tr(), 
@@ -119,4 +120,8 @@ void session::apply_task(const grid_task &task)
 {
 	std::cout << "applying " << task.name() << std::endl;
 	std::cout.flush();
+
+	grid_task_execution * gte = new grid_task_execution(task, std::string("testuser"));
+	//std::cout << "gris task execution created" << std::endl;
+	gte->async_start();
 }
