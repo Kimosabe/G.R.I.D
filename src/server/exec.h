@@ -24,7 +24,7 @@ inline bool is_invalid_pid(const pid_t pid)	{ return pid < 0; };
 
 pid_t execute(const std::string &command);
 
-bool wait_process(pid_t pid, int mseconds);
+bool wait_process(pid_t pid, unsigned long miliseconds);
 
 void terminate_process(pid_t &pid);
 

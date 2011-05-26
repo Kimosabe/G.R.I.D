@@ -81,7 +81,7 @@ void grid_task_execution::start()
 			child_process_ = execute(*i);
 			if( is_invalid_pid(child_process_) )
 				throw simple_exception("Cannot create ptrocess");
-			int wait_time_mseconds = 4000; //4 секунды
+			unsigned long wait_time_mseconds = 4000; //4 секунды
 			while(wait_process(child_process_, wait_time_mseconds) == false)
 				boost::this_thread::interruption_point();
 		}		

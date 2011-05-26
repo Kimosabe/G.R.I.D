@@ -34,9 +34,9 @@ pid_t execute(const std::string &command)
 	return INVALID_HANDLE_VALUE;
 }
 
-bool wait_process(pid_t pid, int mseconds)
+bool wait_process(pid_t pid, unsigned long miliseconds)
 {
-	return WaitForSingleObject(pid, mseconds) != WAIT_TIMEOUT;
+	return WaitForSingleObject(pid, miliseconds) != WAIT_TIMEOUT;
 }
 
 void terminate_process(pid_t &pid)
@@ -49,6 +49,7 @@ void terminate_process(pid_t &pid)
 #else
 
 #include <cstdlib>
+#include <signal.h>
 
 pid_t execute(const std::string &command)
 {
@@ -62,6 +63,27 @@ pid_t execute(const std::string &command)
 	system(command.c_str());
 	exit(0);
 	return 0;
+}
+
+bool wait_process(pid_t pid, unsigned long miliseconds)
+{
+	int status = 0;
+	unsigned long microseconds = miliseconds * 1000, step = miliseconds * 100;
+	for(int i = 0; i < 10; ++i)
+	{
+		pid_t res = waitpid(pid, &status, WNOHANG | WUNTRACED);
+		if( res > 0 )
+			return true;
+		else
+			usleep(step);
+	}
+	return false;
+}
+
+void terminate_process(pid_t &pid)
+{
+	kill(pid, SIGKILL);
+	pid = INVALID_PID;
 }
 
 #endif //Windows / Linux
