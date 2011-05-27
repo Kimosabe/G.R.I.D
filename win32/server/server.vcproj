@@ -227,6 +227,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\shared\lockable_vector.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\server.h"
 				>
 			</File>
