@@ -10,15 +10,18 @@ private:
 	boost::mutex mutex_;
 
 public:
-	lockable_vector() : std::vector<_ElemType>(), mutex_()		{};
-	lockable_vector(const lockable_vector &lv) : std::vector<_ElemType>(lv), mutex_()	{};
+	typedef std::vector<_ElemType> _Mybase;
+	typedef lockable_vector<_ElemType> _Myt;
+
+	lockable_vector() : _Mybase(), mutex_()					{};
+	lockable_vector(const _Myt &lv) : _Mybase(lv), mutex_()	{};
 	virtual ~lockable_vector()	{};
 
 	void lock()			{ mutex_.lock(); };
 	bool try_lock()		{ return mutex_.try_lock(); };
 	void unlock()		{ mutex_.unlock(); };
 
-	lockable_vector& operator= (const lockable_vector &lv)	{ std::vector<_ElemType>::operator =(lv); return *this; };
+	_Myt& operator= (const _Myt &lv)	{ _Mybase::operator =(lv); return *this; };
 };
 
 #endif //_LOCKABLE_VECTOR_HPP
