@@ -2,11 +2,9 @@
 #define GRID_CLIENT_H_
 
 #include "grid_node.h"
+#include "lockable_map.hpp"
+#include "task_status_record.h"
 #include <boost/thread.hpp>
-#include <queue>
-#include <map>
-
-class grid_task;
 
 typedef boost::shared_ptr<boost::thread> thread_ptr;
 
@@ -24,11 +22,9 @@ public:
 
 	void apply_task(const grid_task &gt);
 	void remove_task(const std::string &name);
+	const std::string task_status_message(const std::string &taskname) const; 
 
 	void debug_method();
-
-	enum task_status{EXECUTION, DONE, FAILED};
-
 private:
 	boost::asio::io_service io_serv_;
 
@@ -36,7 +32,7 @@ private:
 	std::vector<thread_ptr> thread_pool_;
 
 	// соответствие имени задания, номера узла, на который оно назначено и его статуса
-	std::map< std::string, std::pair<size_t, task_status> > task_table_;
+	lockable_map<std::string, task_status_record> task_table_;
 	// вектор всех актуальных заданий 
 	std::vector<grid_task> tasks_;
 };

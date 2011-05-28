@@ -24,4 +24,4 @@ public:
 	_Myt& operator= (const _Myt &lm)	{ _Mybase::operator =(lm); return *this; };
 };
 
-#endif //_LOCKABLE_VECTOR_HPP
+#endif //_LOCKABLE_MAP_HPP

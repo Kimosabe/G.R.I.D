@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
 			//gc.apply_task(gt);
 			//gt.rename(std::string("newtask2"));
 			//gc.apply_task(gt);
+			std::cout << gc.task_status_message(gt.name()) << std::endl; 
 		}
 		fin.close();
 

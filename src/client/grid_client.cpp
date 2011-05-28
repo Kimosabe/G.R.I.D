@@ -78,10 +78,14 @@ void grid_client::apply_task(const grid_task &gt)
 
 		try{
 			nodes_[target_node]->apply_task(gt);
-			task_table_[gt.name()] = std::pair<size_t, task_status>(target_node, EXECUTION);
+			task_table_.lock();
+			task_table_[gt.name()] = task_status_record(target_node, task_status_record::SENDING, std::string("Sending"));
+			task_table_.unlock();
 		}
 		catch(std::exception &ex){
-			task_table_[gt.name()] = std::pair<size_t, task_status>(target_node, FAILED);
+			task_table_.lock();
+			task_table_[gt.name()] = task_status_record(target_node, task_status_record::FAILED, ex.what());
+			task_table_.unlock();
 			throw ex;
 		}
 		tasks_.push_back(gt);
@@ -102,6 +106,16 @@ void grid_client::remove_task(const std::string &name)
 			return;
 		}
 }
+
+const std::string grid_client::task_status_message(const std::string &taskname) const
+{
+	std::map<std::string, task_status_record>::const_iterator it = task_table_.find(taskname);
+	if( it != task_table_.end() )
+		return it->second.status_message();
+	else
+		return std::string();
+}
+
 
 void grid_client::debug_method()
 {

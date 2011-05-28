@@ -200,6 +200,10 @@
 				RelativePath="..\..\src\client\main.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\src\client\task_status_record.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -227,7 +231,15 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\shared\lockable_map.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\shared\simple_exception.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\client\task_status_record.h"
 				>
 			</File>
 		</Filter>
