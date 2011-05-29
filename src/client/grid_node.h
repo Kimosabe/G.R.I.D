@@ -1,9 +1,13 @@
 #ifndef GRID_NODE_H_
 #define GRID_NODE_H_
 
+#if defined(_WIN32) || defined(_WIN64) || defined(WIN32) || defined(WIN64)
+
 #ifndef _WIN32_WINNT
 #define _WIN32_WINNT 0x0501
 #endif //_WIN32_WINNT
+
+#endif //Windows
 
 #include <boost/bind.hpp>
 #include <boost/asio.hpp>

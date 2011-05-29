@@ -7,7 +7,7 @@
 template <typename _ElemType1, typename _ElemType2>
 class lockable_map : public std::map<_ElemType1, _ElemType2> {
 private:
-	boost::mutex mutex_;
+	mutable boost::mutex mutex_;
 
 public:
 	typedef std::map<_ElemType1, _ElemType2> _Mybase;
@@ -17,9 +17,9 @@ public:
 	lockable_map(const _Myt &lm) : _Mybase(lm), mutex_()	{};
 	virtual ~lockable_map()	{};
 
-	void lock()			{ mutex_.lock(); };
-	bool try_lock()		{ return mutex_.try_lock(); };
-	void unlock()		{ mutex_.unlock(); };
+	void lock()	const		{ mutex_.lock(); };
+	bool try_lock()	const	{ return mutex_.try_lock(); };
+	void unlock() const		{ mutex_.unlock(); };
 
 	_Myt& operator= (const _Myt &lm)	{ _Mybase::operator =(lm); return *this; };
 };

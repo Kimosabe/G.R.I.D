@@ -109,11 +109,17 @@ void grid_client::remove_task(const std::string &name)
 
 const std::string grid_client::task_status_message(const std::string &taskname) const
 {
+	std::string res;
+
+	task_table_.lock();
+
 	std::map<std::string, task_status_record>::const_iterator it = task_table_.find(taskname);
 	if( it != task_table_.end() )
-		return it->second.status_message();
-	else
-		return std::string();
+		res = it->second.status_message();
+
+	task_table_.unlock();
+
+	return res;
 }
 
 
