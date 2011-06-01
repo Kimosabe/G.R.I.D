@@ -3,7 +3,7 @@
 
 grid_node::grid_node(const short port) : io_service_(), task_executions_()
 {
-	server_ = server_ptr(new server(io_service_, port));
+	server_ = server_ptr(new server(io_service_, port, task_executions_));
 }
 
 grid_node::~grid_node()

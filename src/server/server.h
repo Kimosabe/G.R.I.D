@@ -8,13 +8,15 @@
 
 class server : private boost::noncopyable {
 public:
-	server(boost::asio::io_service& io_service, const short port);
+	server(boost::asio::io_service& io_service, const short port, lockable_vector<grid_task_execution_ptr> &task_executions);
 	virtual ~server();
 
 	void run();
 private:
 	boost::asio::io_service& io_service_;
 	boost::asio::ip::tcp::acceptor acceptor_;
+
+	lockable_vector<grid_task_execution_ptr> &task_executions_;
 
 	void handle_accept(session* new_session, const boost::system::error_code& error);
 };

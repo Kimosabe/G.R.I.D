@@ -4,9 +4,10 @@
 #include <boost/lexical_cast.hpp>
 #include "grid_task.h"
 
-grid_node::grid_node(boost::asio::io_service &io_serv_, const std::string &address_, 
-					 const std::stack<int> &ports_) : io_serv(io_serv_), socket_(io_serv_),
-					 active(false), address(address_), file_transf(), streambuf_()
+grid_node::grid_node(boost::asio::io_service &io_serv_, const std::string &address_, const std::stack<int> &ports_,
+					 task_table_t &task_table, tasks_t &tasks) : 
+						io_serv(io_serv_), socket_(io_serv_), active(false), address(address_),
+							file_transf(), streambuf_(), task_table_(task_table), tasks_(tasks)
 {
 	if( ports_.size() == 0 ) return;
 	std::stack<int> ports(ports_);
@@ -83,22 +84,6 @@ bool grid_node::send_file(const std::string &local_name, const std::string &remo
 	return this->file_transf.send_file(local_name, remote_name, this->socket_);
 }
 
-bool grid_node::send_command(const std::string &command)
-{
-	if( !active ) return false;
-
-	const std::string message = std::string("<command = ") + command + std::string( ">\v");
-	try{
-		boost::asio::write(socket_, boost::asio::buffer(message.c_str(), message.size()+1));
-		return true;
-	}
-	catch( const std::exception &ex ){
-		std::cerr << ex.what() << std::endl;
-	}
-
-	return false;
-}
-
 bool grid_node::request_file(const std::string &local_name, const std::string &remote_name)
 {
 	if( !active ) return false;
@@ -119,6 +104,10 @@ void grid_node::handle_read(const boost::system::error_code& error, size_t bytes
 				std::getline(ss, request, '\v');
 				if( file_transf.recieve_file(request, socket_) )
 					std::cout << "file accepted" << std::endl;
+				else if( parse_task_status_request(request) )
+					;
+				else
+					std::cout << request << std::endl;
 			}
 		}
 
@@ -141,3 +130,82 @@ void grid_node::apply_task(const grid_task &task)
 		throw ex;
 	}
 }
+
+bool grid_node::parse_task_status_request(const std::string &request)
+{
+	const boost::regex re_status("(?xs)(^<task \\s+ \"(.+)\" \\s+ status \\s+ : \\s+ ([_%[:alpha:][:digit:]]+)>$)");
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re_status) )
+	{
+		const std::string name = match_res[2], status = match_res[3];
+
+		// задание принято, надо отправить все входные файлы и запустить
+		if( status == std::string("accepted") )
+		{
+			grid_task gt;
+
+			tasks_.lock();
+			for(tasks_t::const_iterator i = tasks_.begin(); i < tasks_.end(); ++i)
+				if( i->name() == name )
+				{
+					gt = *i;
+					break;
+				}
+			tasks_.unlock();
+
+			if( !gt.empty() )
+			{
+				try{
+					for(grid_task::pair_name_vector::const_iterator i = gt.input_files().begin(); i < gt.input_files().end(); ++i)
+						this->file_transf.send_file(i->first, i->second, socket_);
+
+					const std::string runmsg = std::string("<task \"") + gt.name() + std::string("\" run>\v");
+					boost::asio::write(socket_, boost::asio::buffer(runmsg.data(), runmsg.size()));
+
+					task_table_.lock();
+					if( task_table_.count(gt.name()) > 0 )
+						task_table_[gt.name()].change_status(task_status_record::EXECUTION, "Execution");
+					task_table_.unlock();
+				}
+				catch( std::exception &ex ){
+					std::cerr << ex.what() << std::endl;
+					task_table_.lock();
+					if( task_table_.count(gt.name()) > 0 )
+						task_table_[gt.name()].change_status(task_status_record::FAILED, ex.what());
+					task_table_.unlock();
+				}
+			}
+		}
+		// задание не принято узлом потому что уже существует задание с таким именем
+		else if( status == std::string("already_exists") )
+		{
+			std::cout << "task " << name << " already exists" << std::endl;
+		}
+		// выполнение провалено
+		else if( status == std::string("failed") )
+		{
+			task_table_.lock();
+			if( task_table_.count(name) > 0 )
+				task_table_[name].change_status(task_status_record::FAILED, "Failed");
+			task_table_.unlock();
+			std::cout << "task " << name << " execution failed " << std::endl;
+		}
+		// задание выполняется, (прогресс в процентах)
+		else
+		{
+			short progress = boost::lexical_cast<short>(status);
+			std::cout << "task " << name << " progress : " << progress << '%' << std::endl;
+			if( progress == 100 )
+			{
+				if( task_table_.count(name) > 0 )
+					task_table_[name].change_status(task_status_record::DONE, "Done");
+				task_table_.unlock();
+			}
+		}
+
+		return true;
+	}
+	else
+		return false;
+}
+

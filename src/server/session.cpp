@@ -2,15 +2,13 @@
 #include "grid_task_execution.h"
 #include <sstream>
 
-session::session(boost::asio::io_service& io_service) : socket_(io_service), file_tr(), 
-	child_prcosses(), streambuf_()
+session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions) : 
+	socket_(io_service), task_executions_(task_executions), file_tr(), streambuf_()
 {
 }
 
 session::~session()
 {
-	// kill them all
-	child_prcosses.clear();
 }
 
 boost::asio::ip::tcp::socket& session::socket()
@@ -93,35 +91,28 @@ void session::handle_write(const boost::system::error_code& error)
 		delete this;
 }
 
-bool session::accept_command(const std::string &request)
-{
-	const static boost::regex re_command("(?x)(^<command \\s+ = \\s+ (.+)>$)");
-	boost::smatch match_res;
-
-	if( !boost::regex_match(request, match_res, re_command, boost::regex_constants::match_not_dot_newline) )
-		return false;
-
-	//std::cout << "command = " << match_res[2] << std::endl;
-
-	const pid_t pid = execute(match_res[2]);
-
-	if( is_invalid_pid(pid) ){
-		//а вот хз пока что делать
-		std::cerr << "Error : execution \"" << match_res[2] << "\" failed\n";
-	}
-	else{
-		this->child_prcosses.push_back(pid);
-	}
-
-	return true;
-}
-
 void session::apply_task(const grid_task &task)
 {
 	std::cout << "applying " << task.name() << std::endl;
 	std::cout.flush();
 
-	grid_task_execution * gte = new grid_task_execution(task, std::string("testuser"));
-	//std::cout << "gris task execution created" << std::endl;
-	gte->async_start();
+	const std::string username("testuser");
+	std::string reply;
+
+	task_executions_.lock();
+	for(std::vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+		if( (*i)->username() == username && (*i)->task().name() == task.name() )
+		{
+			reply = std::string("<task \"") + task.name() + std::string("\" status : already_exists>\v");
+			break;
+		}
+	if( reply.empty() )
+	{
+		reply = std::string("<task \"") + task.name() + std::string("\" status : accepted>\v");
+		grid_task_execution_ptr gte = grid_task_execution_ptr( new grid_task_execution(task, username) );
+		task_executions_.push_back(gte);
+	}
+	task_executions_.unlock();
+
+	boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 }

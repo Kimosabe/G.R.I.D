@@ -1,5 +1,7 @@
 #include "grid_task_execution.h"
 #include "simple_exception.hpp"
+#include <iostream>
+#include <fstream>
 
 grid_task_execution::grid_task_execution(const grid_task &task, const std::string &username) : task_(task), username_(username), start_time_(), finish_time_(),
 	child_process_(INVALID_PID), async_thread_()
@@ -7,8 +9,6 @@ grid_task_execution::grid_task_execution(const grid_task &task, const std::strin
 
 grid_task_execution::~grid_task_execution()	
 {
-	// TODO : удаление специального файла с прогрессом выполнения
-	// и возможно удаление вообще всех файлов задания
 }
 
 inline bool grid_task_execution::active() const
@@ -40,7 +40,17 @@ const short grid_task_execution::progress() const
 {
 	if( active() )
 	{
-		//TODO : чтение прогресса из специального файла
+		//TODO : согласовать имя и расположение файла с прогрессом выполнения
+		std::ifstream fin("progress.txt");
+		short progress = 0;
+		if( fin )
+		{
+			fin >> progress;
+			if( progress < 0 || progress > 100 )
+				progress = 0;
+		}
+		fin.close();
+		return progress;
 	}
 	else if( finished() )
 	{
@@ -49,12 +59,12 @@ const short grid_task_execution::progress() const
 	return 0;
 }
 
-inline const grid_task& grid_task_execution::task() const
+const grid_task& grid_task_execution::task() const
 {
 	return task_;
 }
 
-inline const std::string& grid_task_execution::username() const
+const std::string& grid_task_execution::username() const
 {
 	return username_;
 }

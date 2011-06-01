@@ -17,6 +17,9 @@
 #include <string>
 #include <stack>
 #include "file_transferer.h"
+#include "lockable_map.hpp"
+#include "lockable_vector.hpp"
+#include "task_status_record.h"
 
 class grid_task;
 
@@ -29,6 +32,9 @@ private:
 	boost::asio::streambuf streambuf_;
 	bool active;
 
+	lockable_map<std::string, task_status_record> &task_table_;
+	lockable_vector<grid_task> &tasks_;
+
 	const static size_t maxsize = 4096;
 	char buf[maxsize];
 
@@ -38,19 +44,20 @@ private:
 
 	void start();
 	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
+	bool parse_task_status_request(const std::string &request);
+
 public:
+	typedef lockable_map<std::string, task_status_record> task_table_t;
+	typedef lockable_vector<grid_task> tasks_t;
+
 	grid_node(boost::asio::io_service& io_serv_, const std::string &address_, 
-		const std::stack<int> &ports_);
+		const std::stack<int> &ports_, task_table_t &task_table, tasks_t &tasks);
 	virtual ~grid_node();
 
 	bool is_active() const			{ return active; };
 
-	//these 3 functions should be removed in release
-	//------------------------------------------------
 	bool send_file(const std::string &local_name, const std::string &remote_name);
-	bool send_command(const std::string &command);
 	bool request_file(const std::string &local_name, const std::string &remote_name);
-	//------------------------------------------------
 
 	void apply_task(const grid_task &task);
 };

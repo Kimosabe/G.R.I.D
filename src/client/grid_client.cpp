@@ -33,7 +33,7 @@ bool grid_client::run(const std::vector<std::string> &addresses,
 	for(size_t i = 0; i < nodes_num; ++addr_iter,++port_iter,++i)
 	{
 		try{
-			node_ptr newnode = node_ptr( new grid_node(io_serv_, *addr_iter, *port_iter) );
+			node_ptr newnode = node_ptr( new grid_node(io_serv_, *addr_iter, *port_iter, task_table_, tasks_) );
 			nodes_.push_back( newnode );
 		}
 		catch(std::exception &ex){
@@ -88,7 +88,10 @@ void grid_client::apply_task(const grid_task &gt)
 			task_table_.unlock();
 			throw ex;
 		}
+
+		tasks_.lock();
 		tasks_.push_back(gt);
+		tasks_.unlock();
 	}
 	catch(std::exception &ex){
 		throw ex;
@@ -98,13 +101,18 @@ void grid_client::apply_task(const grid_task &gt)
 
 void grid_client::remove_task(const std::string &name)
 {
+	task_table_.lock();
 	task_table_.erase(name);
+	task_table_.unlock();
+
+	tasks_.lock();
 	for(std::vector<grid_task>::iterator i = tasks_.begin(); i < tasks_.end(); ++i)
 		if( i->name() == name )
 		{
 			tasks_.erase(i);
-			return;
+			break;
 		}
+	tasks_.unlock();
 }
 
 const std::string grid_client::task_status_message(const std::string &taskname) const
@@ -131,7 +139,6 @@ void grid_client::debug_method()
 		{
 			(*i)->send_file(std::string("..\\..\\test\\gg.txt"), std::string("gg1.txt"));
 			(*i)->request_file(std::string("gg1.txt"), std::string("gg1.txt"));
-			//(*i)->send_command(std::string("..\\test\\gg.exe"));
 			(*i)->request_file(std::string("gg2.txt"), std::string("gg1.txt"));
 		}
 }

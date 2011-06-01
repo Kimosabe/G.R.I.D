@@ -3,6 +3,7 @@
 
 #include "grid_node.h"
 #include "lockable_map.hpp"
+#include "lockable_vector.hpp"
 #include "task_status_record.h"
 #include <boost/thread.hpp>
 
@@ -34,7 +35,7 @@ private:
 	// соответствие имени задания, номера узла, на который оно назначено и его статуса
 	lockable_map<std::string, task_status_record> task_table_;
 	// вектор всех актуальных заданий 
-	std::vector<grid_task> tasks_;
+	lockable_vector<grid_task> tasks_;
 };
 
 #endif //GRID_CLIENT_H_

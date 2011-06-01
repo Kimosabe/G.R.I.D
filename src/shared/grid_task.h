@@ -24,16 +24,10 @@
  */
 
 class grid_task{
-protected:
-	typedef std::vector< std::pair<std::string, std::string> > pair_name_vector; 
-
-	std::vector<std::string> commands_;
-	pair_name_vector input_files_;
-	pair_name_vector output_files_;
-	int node_;
-	std::string work_dir_, name_;
 public:
 	MSGPACK_DEFINE(commands_, input_files_, output_files_, node_, work_dir_, name_);
+
+	typedef std::vector< std::pair<std::string, std::string> > pair_name_vector; 
 
 	grid_task();
 	grid_task(const grid_task &gt);
@@ -62,6 +56,13 @@ public:
 	void set_work_directory(const std::string &work_dir);
 
 	void clear();
+
+protected:
+	std::vector<std::string> commands_;
+	pair_name_vector input_files_;
+	pair_name_vector output_files_;
+	int node_;
+	std::string work_dir_, name_;
 };
 
 #endif //GRID_TASK_H_

@@ -26,7 +26,7 @@ public:
 
 private:
 	server_ptr server_;
-	lockable_vector<grid_task_execution> task_executions_;
+	lockable_vector<grid_task_execution_ptr> task_executions_;
 	boost::asio::io_service io_service_;
 };
 
