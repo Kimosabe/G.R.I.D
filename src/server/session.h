@@ -14,12 +14,14 @@ private:
 	const static size_t max_length = 65536; //64 kb
 	char data_[max_length];
 	boost::asio::streambuf streambuf_;
+	std::string username_;
 
 	file_transferer file_tr;
 	
 	lockable_vector<grid_task_execution_ptr> &task_executions_;
 
 	void apply_task(const grid_task &task);
+	bool apply_task_command(const std::string &request);
 public:
 	session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions);
 	virtual ~session();

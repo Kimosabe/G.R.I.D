@@ -3,6 +3,7 @@
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 #include "grid_task.h"
+#include "simple_exception.hpp"
 
 grid_node::grid_node(boost::asio::io_service &io_serv_, const std::string &address_, const std::stack<int> &ports_,
 					 task_table_t &task_table, tasks_t &tasks) : 
@@ -157,7 +158,8 @@ bool grid_node::parse_task_status_request(const std::string &request)
 			{
 				try{
 					for(grid_task::pair_name_vector::const_iterator i = gt.input_files().begin(); i < gt.input_files().end(); ++i)
-						this->file_transf.send_file(i->first, i->second, socket_);
+						if( this->file_transf.send_file(i->first, i->second, socket_) == false )
+							throw simple_exception(std::string("Sending ") + i->first + std::string(" failed"));
 
 					const std::string runmsg = std::string("<task \"") + gt.name() + std::string("\" run>\v");
 					boost::asio::write(socket_, boost::asio::buffer(runmsg.data(), runmsg.size()));
@@ -180,6 +182,18 @@ bool grid_node::parse_task_status_request(const std::string &request)
 		else if( status == std::string("already_exists") )
 		{
 			std::cout << "task " << name << " already exists" << std::endl;
+			task_table_.lock();
+			if( task_table_.count(name) > 0 )
+				task_table_[name].change_status(task_status_record::NOTACCEPTED, "Already exists");
+			task_table_.unlock();
+		}
+		// и такое бывает
+		else if( status == std::string("no_such_task") )
+		{
+			std::cout << "task " << name << " not found by node" << std::endl;
+			if( task_table_.count(name) > 0 )
+				task_table_[name].change_status(task_status_record::NOTACCEPTED, "Not found by node");
+			task_table_.unlock();
 		}
 		// выполнение провалено
 		else if( status == std::string("failed") )
@@ -193,13 +207,28 @@ bool grid_node::parse_task_status_request(const std::string &request)
 		// задание выполняется, (прогресс в процентах)
 		else
 		{
-			short progress = boost::lexical_cast<short>(status);
-			std::cout << "task " << name << " progress : " << progress << '%' << std::endl;
-			if( progress == 100 )
-			{
-				if( task_table_.count(name) > 0 )
-					task_table_[name].change_status(task_status_record::DONE, "Done");
-				task_table_.unlock();
+			try{
+				short progress = boost::lexical_cast<short>(status);
+				std::cout << "task " << name << " progress : " << progress << '%' << std::endl;
+				if( progress == 100 )
+				{
+					task_table_.lock();
+					if( task_table_.count(name) > 0 )
+						task_table_[name].change_status(task_status_record::DONE, "Done");
+					task_table_.unlock();
+				}
+				else if( progress >= 0 )
+				{
+					std::string smessage = std::string("Execution : ") + status + std::string("%");
+					task_table_.lock();
+					if( task_table_.count(name) > 0 )
+						task_table_[name].change_status(task_status_record::EXECUTION, smessage);
+					task_table_.unlock();
+				}
+			}
+			catch( std::exception & ex ){
+				std::cerr << "Unexpected : " << ex.what() << " with task status " << status
+					<< std::endl;
 			}
 		}
 

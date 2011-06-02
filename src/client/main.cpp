@@ -25,7 +25,7 @@ int main(int argc, char *argv[])
 
 		grid_task gt;
 		std::ifstream fin("..\\..\\test\\task.txt");
-		if( !fin ) throw std::exception("Error : cannot open task.txt");
+		if( !fin ) throw simple_exception("Error : cannot open task.txt");
 		if( parse_task(gt, fin) )
 		{
 			std::cout << gt.name() << std::endl;
@@ -50,6 +50,7 @@ int main(int argc, char *argv[])
 
 		std::cin.unsetf( std::ios_base::skipws );
 		char c = std::cin.get();
+		std::cout << gc.task_status_message(gt.name()) << std::endl; 
 		gc.stop();
 
 	}

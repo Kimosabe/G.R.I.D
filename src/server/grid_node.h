@@ -24,9 +24,10 @@ public:
 	void run();
 	void stop();
 
+	typedef lockable_vector<grid_task_execution_ptr> task_executions_t;
 private:
 	server_ptr server_;
-	lockable_vector<grid_task_execution_ptr> task_executions_;
+	task_executions_t task_executions_;
 	boost::asio::io_service io_service_;
 };
 

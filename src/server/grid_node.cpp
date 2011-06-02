@@ -1,5 +1,4 @@
 #include "grid_node.h"
-#include "server.h"
 
 grid_node::grid_node(const short port) : io_service_(), task_executions_()
 {

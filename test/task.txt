@@ -4,10 +4,10 @@
 		dir
 	</command>
   	#some other comment
-<input>
+#<input>
 	a.txt | b.txt
-</input>
+#</input>
 <output>
-	a.txt | b.txt
+	gg2.txt | gg1.txt
 </output>
 </task>
