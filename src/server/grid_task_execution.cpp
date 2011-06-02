@@ -82,7 +82,6 @@ void grid_task_execution::async_start()
 void grid_task_execution::start()
 {
 	start_time_ = boost::posix_time::second_clock::local_time();
-	std::cout << "start time " << start_time_ << std::endl;
 
 	try{		
 		for(std::vector<std::string>::const_iterator i = task_.commands().begin(); i < task_.commands().end(); ++i)
@@ -103,7 +102,8 @@ void grid_task_execution::start()
 	}
 	finish_time_ = boost::posix_time::second_clock::local_time();
 
-	std::cout << "completed " << task_.name() << std::endl;
-	std::cout << " finish time " << finish_time_ << std::endl;
+	std::cout << "completed " << task_.name() << " from user " << username_ << std::endl;
+	std::cout << "start time " << start_time_ << std::endl;
+	std::cout << "finish time " << finish_time_ << std::endl;
 }
 	

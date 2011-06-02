@@ -20,8 +20,6 @@ int main(int argc, char *argv[])
 
 		grid_client gc;
 		gc.run(addresses, ports);
-		
-		//gc.debug_method();
 
 		grid_task gt;
 		std::ifstream fin("..\\..\\test\\task.txt");
@@ -44,13 +42,20 @@ int main(int argc, char *argv[])
 			//gc.apply_task(gt);
 			//gt.rename(std::string("newtask2"));
 			//gc.apply_task(gt);
-			std::cout << gc.task_status_message(gt.name()) << std::endl; 
+			//std::cout << gc.task_status_message(gt.name()) << std::endl; 
 		}
 		fin.close();
 
 		std::cin.unsetf( std::ios_base::skipws );
 		char c = std::cin.get();
-		std::cout << gc.task_status_message(gt.name()) << std::endl; 
+		gc.refresh_status(gt.name());
+		c = std::cin.get();
+		std::cout << gc.task_status_message(gt.name()) << std::endl;
+		/*
+		gc.get_result(gt.name());
+		c = std::cin.get();
+		//gc.remove_task(gt.name());
+		*/
 		gc.stop();
 
 	}

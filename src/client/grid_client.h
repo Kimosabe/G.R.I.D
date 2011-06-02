@@ -23,9 +23,10 @@ public:
 
 	void apply_task(const grid_task &gt);
 	void remove_task(const std::string &name);
-	const std::string task_status_message(const std::string &taskname) const; 
+	void get_result(const std::string &name);
+	void refresh_status(const std::string &name);
 
-	void debug_method();
+	const std::string task_status_message(const std::string &taskname) const;
 private:
 	boost::asio::io_service io_serv_;
 

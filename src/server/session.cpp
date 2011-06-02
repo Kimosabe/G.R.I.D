@@ -1,5 +1,6 @@
 #include "session.h"
 #include "grid_task_execution.h"
+#include "simple_exception.hpp"
 #include <sstream>
 
 session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions) : 
@@ -18,8 +19,33 @@ boost::asio::ip::tcp::socket& session::socket()
 	return socket_;
 }
 
+
 void session::start()
 {
+	// отправляем инфу о всех имеющиеся заданиях данного юзера
+	task_executions_.lock();
+	for(lockable_vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+		if( (*i)->username() == username_ )
+		{
+			std::string task_msg = std::string("<task \"") + (*i)->task().name() + std::string("\" status : ");
+			if( !(*i)->active() && !(*i)->finished() )
+				task_msg.append("accepted>\v");
+			else
+			{
+				short progress = (*i)->progress();
+				task_msg.append(boost::lexical_cast<std::string>(progress));
+				task_msg.append(">\v");
+			}
+			boost::asio::write(socket_, boost::asio::buffer(task_msg.data(), task_msg.size()));
+		}
+	task_executions_.unlock();
+
+	async_read();
+}
+
+void session::async_read()
+{
+	// начинаем прием сообщений
 	streambuf_.consume(streambuf_.size());
 	boost::asio::async_read_until(socket_, streambuf_, '\v', boost::bind(&session::handle_read, 
 		this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
@@ -52,7 +78,7 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 					}
 					else if( file_tr.is_upload_request(request, local_name, remote_name) )
 					{
-						std::cout << "upload_request : " << request << std::endl; 
+						//std::cout << "upload_request : " << request << std::endl; 
 						file_tr.send_file(local_name, remote_name, socket_);
 						continue;
 					}
@@ -76,11 +102,11 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 						// здесь могут быть попытки десериализовать сообщения другого рода
 					}
 
-					std::cout << "Unknown : " << request << std::endl;
+					std::cerr << "Unknown request : " << request << std::endl;
 				}
 			}
 		}
-		this->start();
+		this->async_read();
 	}
 	else
 		delete this;
@@ -89,18 +115,16 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 void session::handle_write(const boost::system::error_code& error)
 {
 	if (!error)
-		this->start();
+		this->async_read();
 	else
 		delete this;
 }
 
 void session::apply_task(const grid_task &task)
 {
-	std::cout << "applying " << task.name() << std::endl;
-	std::cout.flush();
-
 	std::string reply;
 
+	// проверяем нет ли уже такого задания
 	task_executions_.lock();
 	for(std::vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
 		if( (*i)->username() == username_ && (*i)->task().name() == task.name() )
@@ -108,6 +132,7 @@ void session::apply_task(const grid_task &task)
 			reply = std::string("<task \"") + task.name() + std::string("\" status : already_exists>\v");
 			break;
 		}
+	// если нет, то принимаем
 	if( reply.empty() )
 	{
 		reply = std::string("<task \"") + task.name() + std::string("\" status : accepted>\v");
@@ -128,6 +153,7 @@ bool session::apply_task_command(const std::string &request)
 	{
 		const std::string name = match_res[2], command = match_res[3];
 
+		// запуск задания на выполнение
 		if( command == std::string("run") )
 		{
 			bool found = false;
@@ -141,12 +167,15 @@ bool session::apply_task_command(const std::string &request)
 				}
 			task_executions_.unlock();
 
+			// если не нашли, то пишем, что нет такого
 			if( !found )
 			{
 				std::string reply = std::string("<task \"") + name + std::string("\" status : no_such_task>\v");
 				boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 			}
 		}
+
+		// проверка статуса задания
 		else if( command == std::string("status") )
 		{
 			short progress = -1;
@@ -168,6 +197,52 @@ bool session::apply_task_command(const std::string &request)
 
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 		}
+
+		// запрос на получение выходных файлов задания
+		else if( command == std::string("get_result") )
+		{
+			// ищем данное задание
+			grid_task gt;
+			task_executions_.lock();
+			for(lockable_vector<grid_task_execution_ptr>::iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+				if( (*i)->task().name() == name && (*i)->username() == username_ )
+				{
+					gt = (*i)->task();
+					break;
+				}
+			task_executions_.unlock();
+
+			// и пробуем отправить результаты
+			if( !gt.empty() )
+			{
+				try{
+					for(grid_task::pair_name_vector::const_iterator i = gt.output_files().begin(); i < gt.output_files().end(); ++i)
+						if( this->file_tr.send_file(i->second, i->first, socket_) == false )
+							std::cerr << "Cannot return result of task " << name << " to user " <<
+								username_ << " (" << i->second << ")" << std::endl;
+						else
+							std::cout << "file " << i->second << " sent" << std::endl;
+				}
+				catch( std::exception & ex ){
+					std::cerr << ex.what() << std::endl;
+				}
+			}
+		}
+
+		// удаляем задание
+		else if( command == std::string("remove") )
+		{
+			task_executions_.lock();
+			for(lockable_vector<grid_task_execution_ptr>::iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+			if( (*i)->task().name() == name && (*i)->username() == username_ )
+			{
+				task_executions_.erase(i);
+				break;
+			}
+			task_executions_.unlock();
+		}
+
+		// что-то странное, такого не должно быть
 		else
 		{
 			std::cerr << "Unknown task command " << command << std::endl;

@@ -30,10 +30,10 @@ bool grid_client::run(const std::vector<std::string> &addresses,
 
 	// пробуем подключиться к каждому узлу из списка адресов используя для каждого список
 	// возможных портов
-	for(size_t i = 0; i < nodes_num; ++addr_iter,++port_iter,++i)
+	for(int i = 0; i < nodes_num; ++addr_iter,++port_iter,++i)
 	{
 		try{
-			node_ptr newnode = node_ptr( new grid_node(io_serv_, *addr_iter, *port_iter, task_table_, tasks_) );
+			node_ptr newnode = node_ptr( new grid_node(io_serv_, *addr_iter, *port_iter, i, task_table_, tasks_) );
 			nodes_.push_back( newnode );
 		}
 		catch(std::exception &ex){
@@ -102,6 +102,10 @@ void grid_client::apply_task(const grid_task &gt)
 void grid_client::remove_task(const std::string &name)
 {
 	task_table_.lock();
+	// если задание принято каким-либо узлом, отправляем ему запрос на удаление
+	if( task_table_.count(name) > 0 )
+		if( task_table_[name].status() != task_status_record::NOTACCEPTED )
+			nodes_[task_table_[name].node()]->remove_task(name);
 	task_table_.erase(name);
 	task_table_.unlock();
 
@@ -130,15 +134,31 @@ const std::string grid_client::task_status_message(const std::string &taskname) 
 	return res;
 }
 
-
-void grid_client::debug_method()
+void grid_client::get_result(const std::string &name)
 {
-	using namespace std;
-	for(vector<node_ptr>::iterator i = nodes_.begin(); i < nodes_.end(); ++i)
-		if( (*i)->is_active() )
-		{
-			(*i)->send_file(std::string("..\\..\\test\\gg.txt"), std::string("gg1.txt"));
-			(*i)->request_file(std::string("gg1.txt"), std::string("gg1.txt"));
-			(*i)->request_file(std::string("gg2.txt"), std::string("gg1.txt"));
-		}
+	task_table_.lock();
+	// если задание принято каким-либо узлом, просим вернуть результат выполнения
+	if( task_table_.count(name) > 0 )
+	{
+		if( task_table_[name].status() != task_status_record::NOTACCEPTED )
+			nodes_[task_table_[name].node()]->get_result(name);
+	}
+	else
+		std::cout << "Task " << name << " not found" << std::endl;
+	task_table_.unlock();
 }
+
+void grid_client::refresh_status(const std::string &name)
+{
+	task_table_.lock();
+	// если задание принято каким-либо узлом, просим вернуть результат выполнения
+	if( task_table_.count(name) > 0 )
+	{
+		if( task_table_[name].status() != task_status_record::NOTACCEPTED )
+			nodes_[task_table_[name].node()]->refresh_status(name);
+	}
+	else
+		std::cout << "Task " << name << " not found" << std::endl;
+	task_table_.unlock();
+}
+

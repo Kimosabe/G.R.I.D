@@ -6,9 +6,9 @@
 #include "simple_exception.hpp"
 
 grid_node::grid_node(boost::asio::io_service &io_serv_, const std::string &address_, const std::stack<int> &ports_,
-					 task_table_t &task_table, tasks_t &tasks) : 
+					 const int number, task_table_t &task_table, tasks_t &tasks) : 
 						io_serv(io_serv_), socket_(io_serv_), active(false), address(address_),
-							file_transf(), streambuf_(), task_table_(task_table), tasks_(tasks)
+						file_transf(), streambuf_(), number_(number), task_table_(task_table), tasks_(tasks)
 {
 	if( ports_.size() == 0 ) return;
 	std::stack<int> ports(ports_);
@@ -165,15 +165,19 @@ bool grid_node::parse_task_status_request(const std::string &request)
 					boost::asio::write(socket_, boost::asio::buffer(runmsg.data(), runmsg.size()));
 
 					task_table_.lock();
-					if( task_table_.count(gt.name()) > 0 )
-						task_table_[gt.name()].change_status(task_status_record::EXECUTION, "Execution");
+					if( task_table_.count(name) > 0 )
+						task_table_[name].change_status(task_status_record::EXECUTION, "Execution");
+					else
+						task_table_[name] = task_status_record(number_, task_status_record::EXECUTION, "Execution");
 					task_table_.unlock();
 				}
 				catch( std::exception &ex ){
 					std::cerr << ex.what() << std::endl;
 					task_table_.lock();
-					if( task_table_.count(gt.name()) > 0 )
-						task_table_[gt.name()].change_status(task_status_record::FAILED, ex.what());
+					if( task_table_.count(name) > 0 )
+						task_table_[name].change_status(task_status_record::FAILED, ex.what());
+					else
+						task_table_[name] = task_status_record(number_, task_status_record::FAILED, ex.what());
 					task_table_.unlock();
 				}
 			}
@@ -185,6 +189,8 @@ bool grid_node::parse_task_status_request(const std::string &request)
 			task_table_.lock();
 			if( task_table_.count(name) > 0 )
 				task_table_[name].change_status(task_status_record::NOTACCEPTED, "Already exists");
+			else
+				task_table_[name] = task_status_record(number_, task_status_record::NOTACCEPTED, "Already exists");
 			task_table_.unlock();
 		}
 		// и такое бывает
@@ -193,6 +199,8 @@ bool grid_node::parse_task_status_request(const std::string &request)
 			std::cout << "task " << name << " not found by node" << std::endl;
 			if( task_table_.count(name) > 0 )
 				task_table_[name].change_status(task_status_record::NOTACCEPTED, "Not found by node");
+			else
+				task_table_[name] = task_status_record(number_, task_status_record::NOTACCEPTED, "Not found by node");
 			task_table_.unlock();
 		}
 		// выполнение провалено
@@ -201,6 +209,8 @@ bool grid_node::parse_task_status_request(const std::string &request)
 			task_table_.lock();
 			if( task_table_.count(name) > 0 )
 				task_table_[name].change_status(task_status_record::FAILED, "Failed");
+			else
+				task_table_[name] = task_status_record(number_, task_status_record::FAILED, "Failed");
 			task_table_.unlock();
 			std::cout << "task " << name << " execution failed " << std::endl;
 		}
@@ -215,6 +225,8 @@ bool grid_node::parse_task_status_request(const std::string &request)
 					task_table_.lock();
 					if( task_table_.count(name) > 0 )
 						task_table_[name].change_status(task_status_record::DONE, "Done");
+					else
+						task_table_[name] = task_status_record(number_, task_status_record::DONE, "Done");
 					task_table_.unlock();
 				}
 				else if( progress >= 0 )
@@ -223,6 +235,8 @@ bool grid_node::parse_task_status_request(const std::string &request)
 					task_table_.lock();
 					if( task_table_.count(name) > 0 )
 						task_table_[name].change_status(task_status_record::EXECUTION, smessage);
+					else
+						task_table_[name] = task_status_record(number_, task_status_record::EXECUTION, smessage);
 					task_table_.unlock();
 				}
 			}
@@ -236,5 +250,23 @@ bool grid_node::parse_task_status_request(const std::string &request)
 	}
 	else
 		return false;
+}
+
+void grid_node::remove_task(const std::string &name)
+{
+	std::string request = std::string("<task \"") + name + std::string("\" remove>\v");
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
+}
+
+void grid_node::get_result(const std::string &name)
+{
+	std::string request = std::string("<task \"") + name + std::string("\" get_result>\v");
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
+}
+
+void grid_node::refresh_status(const std::string &name)
+{
+	std::string request = std::string("<task \"") + name + std::string("\" status>\v");
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 }
 

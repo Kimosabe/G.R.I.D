@@ -23,16 +23,23 @@
 
 class grid_task;
 
-class grid_node : private boost::noncopyable{
+/**
+  * соединение с одним из узлов грид системы
+  */
+
+class grid_node : private boost::noncopyable {
 private:
 	boost::asio::io_service &io_serv;
 	boost::asio::ip::tcp::socket socket_;
 	std::string address;
 	file_transferer file_transf;
 	boost::asio::streambuf streambuf_;
+	int number_;	// порядковый номер данного узла для клиента
 	bool active;
 
+	// ссылка на таблицу с данными о выполнении заданий
 	lockable_map<std::string, task_status_record> &task_table_;
+	// ссылка на вектор принятых заданий
 	lockable_vector<grid_task> &tasks_;
 
 	const static size_t maxsize = 4096;
@@ -51,13 +58,17 @@ public:
 	typedef lockable_vector<grid_task> tasks_t;
 
 	grid_node(boost::asio::io_service& io_serv_, const std::string &address_, 
-		const std::stack<int> &ports_, task_table_t &task_table, tasks_t &tasks);
+		const std::stack<int> &ports_, const int number, task_table_t &task_table, tasks_t &tasks);
 	virtual ~grid_node();
 
 	bool is_active() const			{ return active; };
 
 	bool send_file(const std::string &local_name, const std::string &remote_name);
 	bool request_file(const std::string &local_name, const std::string &remote_name);
+
+	void remove_task(const std::string &name);
+	void get_result(const std::string &name);
+	void refresh_status(const std::string &name);
 
 	void apply_task(const grid_task &task);
 };

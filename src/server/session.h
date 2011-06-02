@@ -20,6 +20,8 @@ private:
 	
 	lockable_vector<grid_task_execution_ptr> &task_executions_;
 
+	void async_read();
+
 	void apply_task(const grid_task &task);
 	bool apply_task_command(const std::string &request);
 public:

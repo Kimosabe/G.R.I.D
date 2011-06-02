@@ -5,7 +5,7 @@
 	</command>
   	#some other comment
 #<input>
-	a.txt | b.txt
+#	a.txt | b.txt
 #</input>
 <output>
 	gg2.txt | gg1.txt
