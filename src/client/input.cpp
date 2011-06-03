@@ -51,6 +51,9 @@ bool read_net(std::vector<std::string> &addresses, std::vector< std::stack<int> 
 	return !addresses.empty() && !ports.empty();
 }
 
+// TODO : написать ман по синтаксису описания заданий
+// при указании списка осей, будет учтена только последняя
+// пока не поддерживаются пути в именах файлов, так что все должно располагаться в текущем каталоге 
 bool parse_task(grid_task &gt, std::istream &fin)
 {
 	const static boost::regex re_task_begin("(?xs)(^<\\s* task \\s+ name \\s* = \\s* ( [a-zA-Z_]+ ) \\s*>)"),
