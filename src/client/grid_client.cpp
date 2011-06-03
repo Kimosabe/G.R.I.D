@@ -162,3 +162,11 @@ void grid_client::refresh_status(const std::string &name)
 	task_table_.unlock();
 }
 
+void grid_client::tasks(grid_client::pair_string_vector &res) const
+{
+	task_table_.lock();
+	for(lockable_map<std::string, task_status_record>::const_iterator i = task_table_.begin(); i != task_table_.end(); ++i)
+		res.push_back(std::pair<std::string, std::string>(i->first, i->second.status_message()));
+	task_table_.unlock();
+}
+

@@ -29,15 +29,15 @@ void grid_node::handle_connect(const boost::system::error_code &err,
 							   boost::asio::ip::tcp::resolver::iterator endpoint_iterator,
 							   std::stack<int> &ports)
 {
-	//подконнектились
+	// подконнектились
 	if (!err)
 	{
 		active = true;
-		std::cout << "connected\n";
+		//std::cout << "connected\n";
 		this->start();
 	}
 
-	//следующий endpoint
+	// следующий endpoint
 	else if( endpoint_iterator != boost::asio::ip::tcp::resolver::iterator() )
 	{
 		boost::asio::ip::tcp::endpoint endpoint = *endpoint_iterator;
@@ -46,7 +46,7 @@ void grid_node::handle_connect(const boost::system::error_code &err,
 			boost::asio::placeholders::error, ++endpoint_iterator, ports));
 	}
 
-	//пробуем следущий порт
+	// пробуем следущий порт
 	else if( !ports.empty() )
 	{
 		int port = ports.top();

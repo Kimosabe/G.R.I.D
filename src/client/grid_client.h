@@ -15,6 +15,7 @@ typedef boost::shared_ptr<boost::thread> thread_ptr;
 
 class grid_client{
 public:
+	typedef std::vector< std::pair<std::string, std::string> > pair_string_vector;
 	grid_client();
 	virtual ~grid_client();
 
@@ -27,6 +28,8 @@ public:
 	void refresh_status(const std::string &name);
 
 	const std::string task_status_message(const std::string &taskname) const;
+	// вектор пар <имя задания, статус> 
+	void tasks(pair_string_vector &res) const;
 private:
 	boost::asio::io_service io_serv_;
 

@@ -201,6 +201,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\client\menu.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\client\task_status_record.cpp"
 				>
 			</File>
@@ -232,6 +236,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\shared\lockable_map.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\client\menu.h"
 				>
 			</File>
 			<File
