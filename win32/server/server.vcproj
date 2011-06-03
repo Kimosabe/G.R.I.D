@@ -197,6 +197,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\server\input.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\main.cpp"
 				>
 			</File>
@@ -232,6 +236,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\server\grid_task_execution.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\server\input.h"
 				>
 			</File>
 			<File

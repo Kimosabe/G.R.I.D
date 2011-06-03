@@ -1,6 +1,6 @@
 <task name = gg>
 	<command>
-		..\test\gg.exe
+		gg.exe
 		dir
 	</command>
   	#some other comment
@@ -10,4 +10,7 @@
 <output>
 	gg2.txt | gg1.txt
 </output>
+<os>
+	windows
+</os>
 </task>

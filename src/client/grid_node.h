@@ -29,9 +29,10 @@ class grid_task;
 
 class grid_node : private boost::noncopyable {
 private:
-	boost::asio::io_service &io_serv;
+	boost::asio::io_service &io_serv_;
 	boost::asio::ip::tcp::socket socket_;
-	std::string address;
+	std::string address_, os_;
+	int port_;
 	file_transferer file_transf;
 	boost::asio::streambuf streambuf_;
 	int number_;	// порядковый номер данного узла для клиента
@@ -52,16 +53,18 @@ private:
 	void start();
 	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
 	bool parse_task_status_request(const std::string &request);
+	bool parse_node_param_request(const std::string &request);
 
 public:
 	typedef lockable_map<std::string, task_status_record> task_table_t;
 	typedef lockable_vector<grid_task> tasks_t;
 
-	grid_node(boost::asio::io_service& io_serv_, const std::string &address_, 
-		const std::stack<int> &ports_, const int number, task_table_t &task_table, tasks_t &tasks);
+	grid_node(boost::asio::io_service& io_serv, const std::string &address, 
+		const std::stack<int> &ports, const int number, task_table_t &task_table, tasks_t &tasks);
 	virtual ~grid_node();
 
 	bool is_active() const			{ return active; };
+	const std::string& os() const	{ return os_; };
 
 	bool send_file(const std::string &local_name, const std::string &remote_name);
 	bool request_file(const std::string &local_name, const std::string &remote_name);

@@ -25,7 +25,7 @@
 
 class grid_task{
 public:
-	MSGPACK_DEFINE(commands_, input_files_, output_files_, node_, work_dir_, name_);
+	MSGPACK_DEFINE(commands_, input_files_, output_files_, node_, work_dir_, name_, os_);
 
 	typedef std::vector< std::pair<std::string, std::string> > pair_name_vector; 
 
@@ -42,6 +42,8 @@ public:
 	const pair_name_vector& output_files() const	{ return output_files_; };
 	const std::string& work_directory() const		{ return work_dir_; };
 	const std::string& name() const					{ return name_; };
+	const std::string& os() const					{ return os_; };
+
 
 	void add_command(const std::string &command);
 	void add_input_file(const std::string &local_name);
@@ -54,6 +56,7 @@ public:
 
 	void set_node(const int &node);
 	void set_work_directory(const std::string &work_dir);
+	void set_os(const std::string &os);
 
 	void clear();
 
@@ -62,7 +65,8 @@ protected:
 	pair_name_vector input_files_;
 	pair_name_vector output_files_;
 	int node_;
-	std::string work_dir_, name_;
+	// work_dir_ пока не используется. Возможно будет реализоан когда-нибудь
+	std::string work_dir_, name_, os_;
 };
 
 #endif //GRID_TASK_H_

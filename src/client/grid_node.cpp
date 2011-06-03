@@ -5,24 +5,24 @@
 #include "grid_task.h"
 #include "simple_exception.hpp"
 
-grid_node::grid_node(boost::asio::io_service &io_serv_, const std::string &address_, const std::stack<int> &ports_,
+grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const std::stack<int> &ports,
 					 const int number, task_table_t &task_table, tasks_t &tasks) : 
-						io_serv(io_serv_), socket_(io_serv_), active(false), address(address_),
-						file_transf(), streambuf_(), number_(number), task_table_(task_table), tasks_(tasks)
+						io_serv_(io_serv), socket_(io_serv), active(false), address_(address), file_transf(),
+						streambuf_(), number_(number), task_table_(task_table), tasks_(tasks), os_()
 {
-	if( ports_.size() == 0 ) return;
-	std::stack<int> ports(ports_);
-	int port = ports.top();
-	ports.pop();
-	boost::asio::ip::tcp::resolver resolver_(io_serv);
-	boost::asio::ip::tcp::resolver::query query_(boost::asio::ip::tcp::v4(), address.data(), 
-		boost::lexical_cast<std::string>(port).data());
+	if( ports.size() == 0 ) return;
+	std::stack<int> ports_(ports);
+	port_ = ports_.top();
+	ports_.pop();
+	boost::asio::ip::tcp::resolver resolver_(io_serv_);
+	boost::asio::ip::tcp::resolver::query query_(boost::asio::ip::tcp::v4(), address_.data(), 
+		boost::lexical_cast<std::string>(port_).data());
 
 	boost::system::error_code err;
 	boost::asio::ip::tcp::resolver::iterator iter = resolver_.resolve(query_, err);
 
 	socket_.async_connect(*iter, boost::bind(&grid_node::handle_connect, this,
-			boost::asio::placeholders::error, ++iter, ports));
+			boost::asio::placeholders::error, ++iter, ports_));
 }
 
 void grid_node::handle_connect(const boost::system::error_code &err,
@@ -49,11 +49,11 @@ void grid_node::handle_connect(const boost::system::error_code &err,
 	// пробуем следущий порт
 	else if( !ports.empty() )
 	{
-		int port = ports.top();
+		port_ = ports.top();
 		ports.pop();
-		boost::asio::ip::tcp::resolver resolver_(io_serv);
-		boost::asio::ip::tcp::resolver::query query_(boost::asio::ip::tcp::v4(), address.data(), 
-			boost::lexical_cast<std::string>(port).data());
+		boost::asio::ip::tcp::resolver resolver_(io_serv_);
+		boost::asio::ip::tcp::resolver::query query_(boost::asio::ip::tcp::v4(), address_.data(), 
+			boost::lexical_cast<std::string>(port_).data());
 
 		boost::system::error_code err;
 		boost::asio::ip::tcp::resolver::iterator iter = resolver_.resolve(query_, err);
@@ -106,6 +106,8 @@ void grid_node::handle_read(const boost::system::error_code& error, size_t bytes
 				if( file_transf.recieve_file(request, socket_) )
 					std::cout << "file accepted" << std::endl;
 				else if( parse_task_status_request(request) )
+					;
+				else if( parse_node_param_request(request) )
 					;
 				else
 					std::cout << request << std::endl;
@@ -245,6 +247,24 @@ bool grid_node::parse_task_status_request(const std::string &request)
 					<< std::endl;
 			}
 		}
+
+		return true;
+	}
+	else
+		return false;
+}
+
+bool grid_node::parse_node_param_request(const std::string &request)
+{
+	const boost::regex re_nparam("(?xs)(^<node_param \\s+ \"(.+)\" \\s+ : \\s+ ([_%[:alpha:][:digit:]]+)>$)");
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re_nparam) )
+	{
+		const std::string pname = match_res[2], pvalue = match_res[3];
+		if( pname == std::string("os") )
+			os_ = pvalue;
+		else
+			std::cerr << "unknown node param " << pname << " = " << pvalue << std::endl;
 
 		return true;
 	}

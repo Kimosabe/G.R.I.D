@@ -6,11 +6,17 @@
 #if defined(_WIN32) || defined(_WIN64) || defined(WIN32) || defined(WIN64)
 
 #include <windows.h>
+#include <direct.h>
 
 #define pid_t HANDLE
 #define INVALID_PID INVALID_HANDLE_VALUE
 
 inline bool is_invalid_pid(const pid_t pid)	{ return pid == INVALID_HANDLE_VALUE; };
+
+// POSIX и Win аналоги отличаютс€ аж 1 подчеркиванием в имени
+inline int change_dir(const char *pathname){
+	return _chdir(pathname);
+}
 
 #else
 
@@ -19,6 +25,10 @@ inline bool is_invalid_pid(const pid_t pid)	{ return pid == INVALID_HANDLE_VALUE
 #define INVALID_PID -1
 
 inline bool is_invalid_pid(const pid_t pid)	{ return pid < 0; };
+
+inline int change_dir(const char *pathname){
+	return chdir(pathname);
+}
 
 #endif //Windows / Linux
 

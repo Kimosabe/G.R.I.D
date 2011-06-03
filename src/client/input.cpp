@@ -61,6 +61,8 @@ bool parse_task(grid_task &gt, std::istream &fin)
 		re_inp_end("(?xs)(^<\\s* /input \\s*>)"),
 		re_outp_begin("(?xs)(^<\\s* output \\s*>)"),
 		re_outp_end("(?xs)(^<\\s* /output \\s*>)"),
+		re_os_begin("(?xs)(^<\\s* os \\s*>)"),
+		re_os_end("(?xs)(^<\\s* /os \\s*>)"),
 		re_filenames1("(?xs)(^\\s* (\" (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ \") \\s* \\| \\s* (\" (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ \") \\s*$)"),
 		re_filenames2("(?xs)(^\\s* ( (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ ) \\s* \\| \\s* ( (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ ) \\s*$)");
 	try{
@@ -199,6 +201,36 @@ bool parse_task(grid_task &gt, std::istream &fin)
 				}
 				else
 					std::cerr << "Warning : output definition out of task will be ignored";
+
+			//******************************** <os> ****************************
+			else if( boost::regex_match(sbuf, re_os_begin) )
+				if( task_started )
+				{
+					bool os_finished = false;
+					do{
+						fin.getline(buf, BUF_SIZE);
+						size_t len = fin.gcount();
+						size_t cursor = 0;
+
+						for( ; cursor < len && is_ws(buf[cursor]); ++cursor);
+						if(cursor == len || buf[cursor] == '#')
+							continue;
+
+						char * cursor_ptr = buf + cursor;
+						const std::string sbuf(cursor_ptr);
+
+						if( boost::regex_match(sbuf, re_os_end) )
+							os_finished = true;
+						else
+							temp.set_os(sbuf);
+
+					}while(!fin.eof() && !os_finished);
+
+					if( !os_finished )
+						throw simple_exception("Error : unexpected end of file in os section");
+				}
+				else
+					std::cerr << "Warning : os definition out of task will be ignored";
 			else
 				std::cerr << "Warning : unrecognized string " << sbuf << std::endl;
 		}
@@ -211,7 +243,7 @@ bool parse_task(grid_task &gt, std::istream &fin)
 		else
 			return false;
 	}
-	catch(const std::exception &ex){
+	catch( std::exception &ex){
 		std::cerr << ex.what() << std::endl;
 	}
 	return false;

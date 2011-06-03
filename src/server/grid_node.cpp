@@ -1,6 +1,7 @@
 #include "grid_node.h"
 
-grid_node::grid_node(const short port) : io_service_(), task_executions_()
+grid_node::grid_node(const short port, const std::vector<std::string> &addresses, const std::vector< std::stack<int> > &ports) : io_service_(), 
+	task_executions_(), addresses_(addresses), ports_(ports)
 {
 	server_ = server_ptr(new server(io_service_, port, task_executions_));
 }

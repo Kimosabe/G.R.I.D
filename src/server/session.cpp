@@ -3,6 +3,8 @@
 #include "simple_exception.hpp"
 #include <sstream>
 
+extern std::string os;
+
 session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions) : 
 	socket_(io_service), task_executions_(task_executions), file_tr(), streambuf_(), 
 	// TODO : убрать заглушку, узнавать имя пользователя при подключении
@@ -39,6 +41,11 @@ void session::start()
 			boost::asio::write(socket_, boost::asio::buffer(task_msg.data(), task_msg.size()));
 		}
 	task_executions_.unlock();
+
+	// отправляем инфу о себе как об узле
+	// ось
+	std::string node_param = std::string("<node_param \"os\" : ") + os + std::string(">\v");
+	boost::asio::write(socket_, boost::asio::buffer(node_param.data(), node_param.size()));
 
 	async_read();
 }
@@ -96,7 +103,7 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 							apply_task(task);
 							continue;
 						}
-						catch(const std::exception &){
+						catch(std::exception &){
 						}
 
 						// здесь могут быть попытки десериализовать сообщения другого рода

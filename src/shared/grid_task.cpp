@@ -1,13 +1,13 @@
 #include "grid_task.h"
 
 grid_task::grid_task() : commands_(), input_files_(), output_files_(), name_(),
-	node_(GRID_ANY_NODE), work_dir_()
+	node_(GRID_ANY_NODE), work_dir_(), os_()
 {
 }
 
 grid_task::grid_task(const grid_task &gt) : commands_(gt.commands_), name_(gt.name_),
 	input_files_(gt.input_files_), output_files_(gt.output_files_), node_(gt.node_),
-	work_dir_(gt.work_dir_)
+	work_dir_(gt.work_dir_), os_(gt.os_)
 {
 }
 
@@ -23,12 +23,13 @@ grid_task& grid_task::operator = (const grid_task &gt)
 	this->node_			= gt.node_;
 	this->work_dir_		= gt.work_dir_;
 	this->name_			= gt.name_;
+	this->os_			= gt.os_;
 	return *this;
 }
 
 bool grid_task::empty() const
 {
-	return commands_.empty() && input_files_.empty() && output_files_.empty();
+	return name_.empty() || (commands_.empty() && input_files_.empty() && output_files_.empty());
 }
 
 void grid_task::add_command(const std::string &command)
@@ -101,6 +102,11 @@ void grid_task::set_node(const int &node)
 	this->node_ = node >= 0 ? node : GRID_ANY_NODE;
 }
 
+void grid_task::set_os(const std::string &os)
+{
+	os_ = os;
+}
+
 void grid_task::clear()
 {
 	commands_.clear();
@@ -108,6 +114,7 @@ void grid_task::clear()
 	output_files_.clear();
 	work_dir_.clear();
 	name_.clear();
+	os_.clear();
 }
 
 void grid_task::rename(const std::string &new_name)
