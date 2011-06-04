@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;D:\C++\bk\include&quot;;&quot;D:\C++\bk\src\shared&quot;;&quot;D:\C++\boost_1_45_0&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Kimo\Downloads\boost_1_45_0\&quot;;&quot;..\..\src\shared&quot;;&quot;..\..\include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -62,7 +62,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;D:\C++\bk\lib&quot;;&quot;D:\C++\boost_1_45_0\stage\lib&quot;"
+				AdditionalLibraryDirectories="&quot;..\..\lib&quot;;&quot;C:\Users\Kimo\Downloads\boost_1_45_0\stage\lib&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -116,7 +116,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;D:\C++\boost_1_45_0&quot;;&quot;D:\C++\bk\src\shared&quot;;&quot;D:\C++\bk\include&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Kimo\Downloads\boost_1_45_0\&quot;;&quot;..\..\src\shared&quot;;&quot;..\..\include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -138,7 +138,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;D:\C++\boost_1_45_0\stage\lib&quot;;&quot;D:\C++\bk\lib&quot;"
+				AdditionalLibraryDirectories="&quot;C:\Users\Kimo\Downloads\boost_1_45_0\stage\lib&quot;;&quot;..\..\lib&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"

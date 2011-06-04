@@ -41,7 +41,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="&quot;D:\C++\bk\include&quot;;&quot;D:\C++\bk\src\shared&quot;;&quot;D:\C++\boost_1_45_0&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Kimo\Downloads\boost_1_45_0\&quot;;&quot;..\..\src\shared&quot;;&quot;..\..\include&quot;"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -61,8 +61,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="cryptlibd.lib"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="&quot;D:\C++\bk\lib&quot;;&quot;D:\C++\boost_1_45_0\stage\lib&quot;"
+				AdditionalLibraryDirectories="&quot;..\..\lib&quot;;&quot;C:\Users\Kimo\Downloads\boost_1_45_0\stage\lib\&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				TargetMachine="1"
@@ -116,7 +117,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				EnableIntrinsicFunctions="true"
-				AdditionalIncludeDirectories="&quot;D:\C++\boost_1_45_0&quot;;&quot;D:\C++\bk\src\shared&quot;;&quot;D:\C++\bk\include&quot;"
+				AdditionalIncludeDirectories="&quot;C:\Users\Kimo\Downloads\boost_1_45_0\&quot;;&quot;..\..\src\shared&quot;;&quot;..\..\include&quot;"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
@@ -137,8 +138,9 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="cryptlib.lib"
 				LinkIncremental="1"
-				AdditionalLibraryDirectories="&quot;D:\C++\boost_1_45_0\stage\lib&quot;;&quot;D:\C++\bk\lib&quot;"
+				AdditionalLibraryDirectories="&quot;C:\Users\Kimo\Downloads\boost_1_45_0\stage\lib&quot;;&quot;..\..\lib&quot;"
 				GenerateDebugInformation="true"
 				SubSystem="1"
 				OptimizeReferences="2"
@@ -177,6 +179,10 @@
 			UniqueIdentifier="{4FC737F1-C7A5-4376-A066-2A32D752A2FF}"
 			>
 			<File
+				RelativePath="..\..\src\server\acl.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\exec.cpp"
 				>
 			</File>
@@ -212,12 +218,20 @@
 				RelativePath="..\..\src\server\session.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\src\server\users_manager.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
 			Filter="h;hpp;hxx;hm;inl;inc;xsd"
 			UniqueIdentifier="{93995380-89BD-4b04-88EB-625FBE52EBFB}"
 			>
+			<File
+				RelativePath="..\..\src\server\acl.h"
+				>
+			</File>
 			<File
 				RelativePath="..\..\src\server\exec.h"
 				>
@@ -256,6 +270,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\shared\simple_exception.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\server\users_manager.h"
 				>
 			</File>
 		</Filter>
