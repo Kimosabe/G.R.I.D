@@ -1,2 +1,2 @@
 os=windows
-workdir=D:\C++\bk\test
+workdir=C:\sources\c++\G.R.I.D\test

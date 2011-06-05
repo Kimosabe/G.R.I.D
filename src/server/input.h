@@ -7,7 +7,7 @@
 #include <map>
 
 #define NET_DESCRIPTION_FILE "node_net.dat"
-#define CONFIG_FILE "..\\test\\config.txt"
+#define CONFIG_FILE "config.txt"
 
 bool read_net(std::vector<std::string> &addresses, std::vector< std::stack<int> > &ports);
 

@@ -5,7 +5,7 @@
 #include <sstream>
 #include <boost/regex.hpp>
 
-#define NET_DESCRIPTION_FILE "..\\..\\test\\net.dat"
+#define NET_DESCRIPTION_FILE "net.dat"
 #define BUF_SIZE 2048
 
 inline bool is_ws(const char x){
