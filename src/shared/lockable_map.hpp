@@ -4,7 +4,7 @@
 #include <map>
 #include <boost/thread/mutex.hpp>
 
-template <typename _ElemType1, typename _ElemType2>
+template <class _ElemType1, class _ElemType2>
 class lockable_map : public std::map<_ElemType1, _ElemType2> {
 private:
 	mutable boost::mutex mutex_;
@@ -14,14 +14,14 @@ public:
 	typedef lockable_map<_ElemType1, _ElemType2> _Myt;
 
 	lockable_map() : _Mybase(), mutex_()					{};
-	lockable_map(const _Myt &lm) : _Mybase(lm), mutex_()	{};
+	lockable_map(const _Mybase &m) : _Mybase(m), mutex_()	{};
 	virtual ~lockable_map()	{};
 
 	void lock()	const		{ mutex_.lock(); };
 	bool try_lock()	const	{ return mutex_.try_lock(); };
 	void unlock() const		{ mutex_.unlock(); };
 
-	_Myt& operator= (const _Myt &lm)	{ _Mybase::operator =(lm); return *this; };
+	_Myt& operator= (const _Mybase &m)	{ _Mybase::operator =(m); return *this; };
 };
 
 #endif //_LOCKABLE_MAP_HPP
