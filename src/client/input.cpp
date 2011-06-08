@@ -56,7 +56,7 @@ bool read_net(std::vector<std::string> &addresses, std::vector< std::stack<int> 
 // пока не поддерживаютс€ пути в именах файлов, так что все должно располагатьс€ в текущем каталоге 
 bool parse_task(grid_task &gt, std::istream &fin)
 {
-	const static boost::regex re_task_begin("(?xs)(^<\\s* task \\s+ name \\s* = \\s* ( [a-zA-Z_]+ ) \\s*>)"),
+	const static boost::regex re_task_begin("(?xs)(^<\\s* task \\s+ name \\s* = \\s* ( [[:alpha:][:digit:]_]+ ) \\s*>)"),
 		re_task_end("(?xs)(^<\\s* /task \\s*>)"),
 		re_cmd_begin("(?xs)(^<\\s* command \\s*>)"),
 		re_cmd_end("(?xs)(^<\\s* /command \\s*>)"),
