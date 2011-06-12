@@ -316,3 +316,8 @@ server* session::get_parent_server()
 {
 	return parent_server_;
 }
+
+void session::sync_data()
+{
+	;
+}

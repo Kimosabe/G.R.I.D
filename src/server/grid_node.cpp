@@ -1,6 +1,6 @@
 #include "grid_node.h"
 
-grid_node::grid_node(const short port, const std::vector<std::string> &addresses, const std::vector< std::stack<int> > &ports,
+grid_node::grid_node(const short port, const addresses_t &addresses, const ports_t &ports,
 					 const std::string& users_path)
 : io_service_(), task_executions_(), addresses_(addresses), ports_(ports), users_manager_(users_path)
 {
@@ -26,4 +26,14 @@ void grid_node::run()
 UsersManager& grid_node::get_users_manager()
 {
 	return users_manager_;
+}
+
+grid_node::addresses_t& grid_node::get_addresses()
+{
+	return addresses_;
+}
+
+grid_node::ports_t& grid_node::get_ports()
+{
+	return ports_;
 }

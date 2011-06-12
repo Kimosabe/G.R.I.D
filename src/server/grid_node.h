@@ -21,23 +21,27 @@
 
 class grid_node : private boost::noncopyable {
 public:
-	grid_node(const short port, const std::vector<std::string> &addresses, const std::vector< std::stack<int> > &ports,
+	typedef std::vector<std::string> addresses_t;
+	typedef std::vector< std::stack<int> > ports_t;
+	typedef lockable_vector<grid_task_execution_ptr> task_executions_t;
+
+	grid_node(const short port, const addresses_t &addresses, const ports_t &ports,
 		const std::string& users_path);
 	virtual ~grid_node();
 
 	void run();
 	void stop();
 	UsersManager& get_users_manager();
-
-	typedef lockable_vector<grid_task_execution_ptr> task_executions_t;
+	addresses_t& get_addresses();
+	ports_t& get_ports();
 private:
 	server_ptr server_;
 	task_executions_t task_executions_;
 	boost::asio::io_service io_service_;
 	std::string os_;
 	// адреса других узлов сети
-	std::vector<std::string> addresses_;
-	std::vector< std::stack<int> > ports_;
+	addresses_t addresses_;
+	ports_t ports_;
 	// мэнеджер пользователей
 	UsersManager users_manager_;
 };
