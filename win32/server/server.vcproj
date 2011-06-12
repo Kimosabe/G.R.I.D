@@ -220,6 +220,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\server\transaction.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\users_manager.cpp"
 				>
 			</File>
@@ -271,6 +275,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\shared\simple_exception.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\server\transaction.h"
 				>
 			</File>
 			<File

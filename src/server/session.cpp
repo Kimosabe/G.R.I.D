@@ -1,11 +1,17 @@
-#include "simple_exception.hpp"
+#include <stack>
 #include <sstream>
+#include <set>
+
+#include <msgpack.hpp>
+
+#include "simple_exception.hpp"
 #include "session.h"
-#include "grid_task_execution.h"
 #include "server.h"
 #include "grid_node.h"
-#include "users_manager.h"
+#include "grid_task_execution.h"
 #include "acl.h"
+#include "users_manager.h"
+#include "transaction.h"
 
 using Kimo::ACL;
 
@@ -319,5 +325,78 @@ server* session::get_parent_server()
 
 void session::sync_data()
 {
-	;
+	using std::set;
+	using std::stack;
+
+	grid_node::addresses_t& addresses = get_parent_server()->get_parent_node()->get_addresses();
+	grid_node::ports_t& ports = get_parent_server()->get_parent_node()->get_ports();
+
+	typedef std::vector<Kimo::Transaction> transactions_t;
+	//transactions_t transactions;
+	//transactions.resize(addresses.size());
+
+	size_t size = addresses.size();
+	Kimo::Transaction* transactions = new Kimo::Transaction[size];
+	
+	std::set<size_t> bad_addresses;
+	std::stack<int> port_stack;
+
+	bool connected;
+	short port;
+	//transactions_t::iterator itr = transactions.begin();
+	for (size_t i = 0; i < size; ++i)
+	{
+		connected = false;
+		transactions[i].set_name("users");
+		port_stack = ports[i];
+		while(!port_stack.empty())
+		{
+			port = port_stack.top();
+			port_stack.pop();
+			if (!transactions[i].connect(addresses[i], port))
+			{
+				connected = true;
+				break;
+			}
+		}
+
+		if (!connected)
+			bad_addresses.insert(i);
+	}
+
+	for (size_t i = 0; i < size; ++i)
+	{
+		if (bad_addresses.count(i) == 0)
+		{
+			if (transactions[i].begin())
+				bad_addresses.insert(i);
+		}
+	}
+
+	UsersManager& users_manager = get_parent_server()->get_parent_node()->get_users_manager();
+	msgpack::sbuffer sbuffer;
+	users_manager.serialize(sbuffer);
+
+	for (size_t i = 0; i < size; ++i)
+	{
+		if (bad_addresses.count(i) == 0)
+		{
+			if (transactions[i].transfer((char*)sbuffer.data(), sbuffer.size()))
+				bad_addresses.insert(i);
+		}
+	}
+
+	for (size_t i = 0; i < size; ++i)
+	{
+		if (bad_addresses.count(i) == 0)
+		{
+			if (transactions[i].end())
+				bad_addresses.insert(i);
+		}
+	}
+
+	size_t complited_transactions = size - bad_addresses.size();
+	std::cerr << "complited: " << complited_transactions << " / " << size << std::endl;
+
+	delete [] transactions;
 }
