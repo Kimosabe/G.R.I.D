@@ -5,3 +5,4 @@ Debug/*
 *.ncb
 *.suo
 *.sln
+client/*
