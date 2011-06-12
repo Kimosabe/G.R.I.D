@@ -8,11 +8,15 @@
 #include "session.h"
 #include "users_manager.h"
 
+class grid_node;
+
 class server : private boost::noncopyable {
 public:
 	server(boost::asio::io_service& io_service, const short port, lockable_vector<grid_task_execution_ptr> &task_executions,
-		UsersManager& users_manager);
+		grid_node* parent_node);
 	virtual ~server();
+
+	grid_node* get_parent_node();
 
 	void run();
 private:
@@ -22,7 +26,7 @@ private:
 	lockable_vector<grid_task_execution_ptr> &task_executions_;
 
 	void handle_accept(session* new_session, const boost::system::error_code& error);
-	UsersManager& users_manager_;
+	grid_node* parent_node_;
 };
 
 typedef boost::shared_ptr<server> server_ptr;

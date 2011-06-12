@@ -9,7 +9,23 @@
 #include <boost/asio/streambuf.hpp>
 #include "users_manager.h"
 
+class server;
+
 class session{
+public:
+	session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
+		server* parent_server);
+	virtual ~session();
+
+	boost::asio::ip::tcp::socket& socket();
+
+	void start();
+
+	server* get_parent_server();
+
+	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
+	void handle_write(const boost::system::error_code& error);
+
 private:
 	boost::asio::ip::tcp::socket socket_;	
 	const static size_t max_length = 65536; //64 kb
@@ -27,18 +43,7 @@ private:
 	bool apply_task_command(const std::string &request);
 	bool login_request(const std::string &request);
 
-	UsersManager& users_manager_;
-public:
-	session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
-		UsersManager& users_manager);
-	virtual ~session();
-
-	boost::asio::ip::tcp::socket& socket();
-
-	void start();
-
-	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
-	void handle_write(const boost::system::error_code& error);
+	server* parent_server_;
 };
 
 #endif //_SESSION_H

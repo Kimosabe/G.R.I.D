@@ -1,7 +1,10 @@
-#include "session.h"
-#include "grid_task_execution.h"
 #include "simple_exception.hpp"
 #include <sstream>
+#include "session.h"
+#include "grid_task_execution.h"
+#include "server.h"
+#include "grid_node.h"
+#include "users_manager.h"
 #include "acl.h"
 
 using Kimo::ACL;
@@ -9,10 +12,10 @@ using Kimo::ACL;
 extern std::string os;
 
 session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
-				 UsersManager& users_manager)
+				 server* parent_server)
 : 	socket_(io_service), task_executions_(task_executions), file_tr(), streambuf_(), 
 	// TODO : убрать заглушку, узнавать имя пользователя при подключении
-	username_("testuser"), users_manager_(users_manager)
+	username_("testuser"), parent_server_(parent_server)
 {
 }
 
@@ -256,6 +259,7 @@ bool session::login_request(const std::string &request)
 		std::string login = match_res[2], password = match_res[3];
 		int user_id = -1;
 
+		UsersManager& users_manager_ = get_parent_server()->get_parent_node()->get_users_manager();
 		if (!users_manager_.isValid(login, password, true) || (user_id = users_manager_.getId(login)) < 0)
 		{
 			std::string reply = std::string("<user \"") + login + std::string("\" \"user not found\" token -1>\v");
@@ -306,4 +310,9 @@ bool session::login_request(const std::string &request)
 	}
 
 	return false;
+}
+
+server* session::get_parent_server()
+{
+	return parent_server_;
 }

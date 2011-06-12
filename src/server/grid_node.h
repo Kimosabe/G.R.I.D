@@ -27,6 +27,7 @@ public:
 
 	void run();
 	void stop();
+	UsersManager& get_users_manager();
 
 	typedef lockable_vector<grid_task_execution_ptr> task_executions_t;
 private:
