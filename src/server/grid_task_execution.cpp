@@ -41,11 +41,16 @@ const short grid_task_execution::progress() const
 	if( active() )
 	{
 		//TODO : согласовать имя и расположение файла с прогрессом выполнения
-		std::ifstream fin("progress.txt");
+		std::ifstream fin("progress", std::ios::ate | std::ios::binary);
 		short progress = 0;
-		if( fin )
+		if( fin && fin.tellg() > sizeof(progress) )
 		{
-			fin >> progress;
+			size_t offset = fin.tellg();
+			offset -= sizeof(progress);
+			fin.seekg(offset, std::ios::beg);
+			_char_short_t temp;
+			fin.read(temp.ch, sizeof(progress));
+			progress = temp.sh;
 			if( progress < 0 || progress > 100 )
 				progress = 0;
 		}

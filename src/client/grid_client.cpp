@@ -95,7 +95,7 @@ void grid_client::apply_task(const grid_task &gt)
 		tasks_.unlock();
 	}
 	catch(std::exception &ex){
-		throw ex;
+		std::cerr << ex.what() << std::endl;
 	}
 
 }

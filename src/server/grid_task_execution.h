@@ -22,6 +22,11 @@ protected:
 
 	void start();
 
+	typedef union {
+		char ch[sizeof(short)];
+		short sh;
+	} _char_short_t;
+
 public:
 	grid_task_execution(const grid_task &task, const std::string &username);
 	virtual ~grid_task_execution();
