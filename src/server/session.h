@@ -8,6 +8,7 @@
 #include "lockable_vector.hpp"
 #include <boost/asio/streambuf.hpp>
 #include "users_manager.h"
+#include <msgpack.hpp>
 
 class server;
 
@@ -40,11 +41,17 @@ private:
 	void async_read();
 	void sync_data();
 
+	bool transaction_begin(const std::string &request);
+	bool transaction_transfer(const std::string &request);
+	bool transaction_end(const std::string &request);
+
 	void apply_task(const grid_task &task);
 	bool apply_task_command(const std::string &request);
 	bool login_request(const std::string &request);
 
 	server* parent_server_;
+	msgpack::sbuffer sbuffer_;
+	bool transaction_in_progress;
 };
 
 #endif //_SESSION_H

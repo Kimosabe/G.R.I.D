@@ -21,7 +21,7 @@ session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_
 				 server* parent_server)
 : 	socket_(io_service), task_executions_(task_executions), file_tr(), streambuf_(), 
 	// TODO : убрать заглушку, узнавать имя пользователя при подключении
-	username_("testuser"), parent_server_(parent_server)
+	username_("testuser"), parent_server_(parent_server), transaction_in_progress(false)
 {
 }
 
@@ -85,6 +85,12 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 					{
 						continue;
 					}
+					else if ( transaction_begin(request) )
+						continue;
+					else if ( transaction_transfer(request) )
+						continue;
+					else if ( transaction_end(request) )
+						continue;
 					// пробуем что-нибудь десериализовать
 					else
 					{
@@ -312,6 +318,71 @@ bool session::login_request(const std::string &request)
 			boost::asio::write(socket_, boost::asio::buffer(node_param.data(), node_param.size()));
 		}
 
+		return true;
+	}
+
+	return false;
+}
+
+bool session::transaction_begin(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ begin>$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		transaction_in_progress = true;
+		std::string name = match_res[2];
+
+		std::string msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">\v");
+
+		boost::asio::write(socket_, boost::asio::buffer(msg.data(), msg.size()));
+
+		return true;
+	}
+
+	return false;
+}
+
+bool session::transaction_transfer(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ data \"(.*)\">$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		std::string name = match_res[2], data = match_res[3];
+		sbuffer_.clear();
+		sbuffer_.write(data.c_str(), data.size());
+
+		std::string msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">\v");
+
+		boost::asio::write(socket_, boost::asio::buffer(msg.data(), msg.size()));
+
+		return true;
+	}
+
+	return false;
+}
+
+bool session::transaction_end(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ end>$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		std::string name = match_res[2];
+		std::string msg;
+
+		if (get_parent_server()->get_parent_node()->get_users_manager().deserialize(sbuffer_) < 0)
+			msg = std::string("<transaction \"") + name + std::string("\" status \"bad\">\v");
+		else
+			msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">\v");
+
+		boost::asio::write(socket_, boost::asio::buffer(msg.data(), msg.size()));
+
+		transaction_in_progress = false;
 		return true;
 	}
 
