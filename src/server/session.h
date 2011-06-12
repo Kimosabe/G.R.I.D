@@ -39,7 +39,7 @@ private:
 	lockable_vector<grid_task_execution_ptr> &task_executions_;
 
 	void async_read();
-	void sync_data();
+	void sync_data(std::string& transaction_name, time_t timestamp);
 
 	bool transaction_begin(const std::string &request);
 	bool transaction_transfer(const std::string &request);

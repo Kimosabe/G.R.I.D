@@ -326,13 +326,14 @@ bool session::login_request(const std::string &request)
 
 bool session::transaction_begin(const std::string &request)
 {
-	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ begin>$)");
+	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ begin \"(.*)\">$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
 	{
 		transaction_in_progress = true;
-		std::string name = match_res[2];
+		std::string name = match_res[2], str_timestamp = match_res[3];
+		time_t timestamp = boost::lexical_cast<time_t>(str_timestamp);
 
 		std::string msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">\v");
 
@@ -394,7 +395,7 @@ server* session::get_parent_server()
 	return parent_server_;
 }
 
-void session::sync_data()
+void session::sync_data(std::string& transaction_name, time_t timestamp)
 {
 	using std::set;
 	using std::stack;
@@ -415,10 +416,11 @@ void session::sync_data()
 	bool connected;
 	short port;
 	//transactions_t::iterator itr = transactions.begin();
+	// Подключение ко всем нодам
 	for (size_t i = 0; i < size; ++i)
 	{
 		connected = false;
-		transactions[i].set_name("users");
+		transactions[i].set_name(transaction_name.c_str());
 		port_stack = ports[i];
 		while(!port_stack.empty())
 		{
@@ -435,19 +437,22 @@ void session::sync_data()
 			bad_addresses.insert(i);
 	}
 
+	// Начало транзакции со всеми нодами, к которым смогли подключиться
 	for (size_t i = 0; i < size; ++i)
 	{
 		if (bad_addresses.count(i) == 0)
 		{
-			if (transactions[i].begin())
+			if (transactions[i].begin(timestamp))
 				bad_addresses.insert(i);
 		}
 	}
 
+	// Формируем данные для транзакции
 	UsersManager& users_manager = get_parent_server()->get_parent_node()->get_users_manager();
 	msgpack::sbuffer sbuffer;
 	users_manager.serialize(sbuffer);
 
+	// Передаем данные
 	for (size_t i = 0; i < size; ++i)
 	{
 		if (bad_addresses.count(i) == 0)
@@ -457,6 +462,7 @@ void session::sync_data()
 		}
 	}
 
+	// Завершаем транзакцию
 	for (size_t i = 0; i < size; ++i)
 	{
 		if (bad_addresses.count(i) == 0)

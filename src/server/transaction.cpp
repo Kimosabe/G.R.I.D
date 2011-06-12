@@ -1,8 +1,10 @@
 #include <iostream>
+#include <sstream>
 
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/regex.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "transaction.h"
 
@@ -34,12 +36,13 @@ namespace Kimo
 		return false;
 	}
 
-	bool Transaction::begin()
+	bool Transaction::begin(time_t timestamp)
 	{
 		if (!m_socket.is_open())
 			return true;
 
-		std::string msg = std::string("<transaction \"") + m_name + std::string("\" begin>\v");
+		std::string msg = std::string("<transaction \"") + m_name + std::string("\" begin \"") +
+			boost::lexical_cast<std::string>(timestamp) + std::string("\">\v");
 		size_t bytes = boost::asio::write(m_socket, boost::asio::buffer(msg.data(), msg.size()));
 
 		if (bytes != msg.size())
