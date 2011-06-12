@@ -10,16 +10,19 @@
 #endif //Windows
 
 #include <stack>
+#include <string>
 #include <boost/shared_ptr.hpp>
 #include <boost/asio.hpp>
 #include <boost/noncopyable.hpp>
 #include "lockable_vector.hpp"
 #include "grid_task_execution.h"
 #include "server.h"
+#include "users_manager.h"
 
 class grid_node : private boost::noncopyable {
 public:
-	grid_node(const short port, const std::vector<std::string> &addresses, const std::vector< std::stack<int> > &ports);
+	grid_node(const short port, const std::vector<std::string> &addresses, const std::vector< std::stack<int> > &ports,
+		const std::string& users_path);
 	virtual ~grid_node();
 
 	void run();
@@ -34,6 +37,8 @@ private:
 	// адреса других узлов сети
 	std::vector<std::string> addresses_;
 	std::vector< std::stack<int> > ports_;
+	// мэнеджер пользователей
+	UsersManager users_manager_;
 };
 
 typedef boost::shared_ptr<grid_node> grid_node_ptr;

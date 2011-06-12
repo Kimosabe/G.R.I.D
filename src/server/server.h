@@ -1,14 +1,17 @@
 #ifndef _SERVER_H
 #define _SERVER_H
 
-#include "session.h"
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
 
+#include "session.h"
+#include "users_manager.h"
+
 class server : private boost::noncopyable {
 public:
-	server(boost::asio::io_service& io_service, const short port, lockable_vector<grid_task_execution_ptr> &task_executions);
+	server(boost::asio::io_service& io_service, const short port, lockable_vector<grid_task_execution_ptr> &task_executions,
+		UsersManager& users_manager);
 	virtual ~server();
 
 	void run();
@@ -19,6 +22,7 @@ private:
 	lockable_vector<grid_task_execution_ptr> &task_executions_;
 
 	void handle_accept(session* new_session, const boost::system::error_code& error);
+	UsersManager& users_manager_;
 };
 
 typedef boost::shared_ptr<server> server_ptr;

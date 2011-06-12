@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
 	{
 		if (argc != 2)
 		{
-			std::cerr << "Usage: async_tcp_echo_server <port>\n";
+			std::cerr << "Usage: " << argv[0] << " <port>\n";
 			return 1;
 		}
 
@@ -38,7 +38,8 @@ int main(int argc, char* argv[])
 
 		os = config["os"];
 
-		grid_node node(boost::lexical_cast<short>(argv[1]), addresses, ports);
+		std::string users_path("users.dat");
+		grid_node node(boost::lexical_cast<short>(argv[1]), addresses, ports, users_path);
 		node.run();
 
 		return 0;

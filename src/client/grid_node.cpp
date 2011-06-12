@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <boost/lexical_cast.hpp>
+#include <boost/asio/read_until.hpp>
 #include "grid_task.h"
 #include "simple_exception.hpp"
 
@@ -34,7 +35,7 @@ void grid_node::handle_connect(const boost::system::error_code &err,
 	{
 		active = true;
 		//std::cout << "connected\n";
-		this->start();
+		//this->start();
 	}
 
 	// следующий endpoint
@@ -290,3 +291,44 @@ void grid_node::refresh_status(const std::string &name)
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 }
 
+bool grid_node::login(std::string& login, std::string& password)
+{
+	std::string request = std::string("<user \"") + login + std::string("\" \"") + password +
+		std::string("\" login>\v");
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
+
+	streambuf_.consume(streambuf_.size());
+	size_t bytes_transferred = boost::asio::read_until(socket_, streambuf_, '\v');
+
+	if( bytes_transferred > 0 )
+	{
+		std::istream ss(&streambuf_);
+		std::string request;
+
+		if( !ss.eof() )
+		{
+			const boost::regex re_status("(?xs)(^<user \\s+ \"(.+)\" \\s+ \"(.+)\" \\s+ token \\s+ (-?\\d+)>$)");
+			std::getline(ss, request, '\v');
+
+			boost::smatch match_res;
+			if( boost::regex_match(request, match_res, re_status) )
+			{
+				std::string received_login = match_res[2], status = match_res[3];
+				long token = boost::lexical_cast<long>(match_res[4]);
+
+				if (received_login != login)
+					std::cerr << "can't login: wrong login received" << std::endl;
+				else if (status != "accepted")
+					std::cerr << "can't login: " << status << std::endl;
+				else if (token < 0)
+					std::cerr << "can't login: wrong token" << std::endl;
+				else
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}

@@ -45,7 +45,7 @@
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
-				RuntimeLibrary="3"
+				RuntimeLibrary="1"
 				UsePrecompiledHeader="0"
 				WarningLevel="3"
 				DebugInformationFormat="4"
@@ -61,6 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="cryptlibd.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;..\..\lib&quot;;&quot;C:\Users\Kimo\Downloads\boost_1_45_0\stage\lib&quot;"
 				GenerateDebugInformation="true"
@@ -137,6 +138,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalDependencies="cryptlib.lib"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="&quot;C:\Users\Kimo\Downloads\boost_1_45_0\stage\lib&quot;;&quot;..\..\lib&quot;"
 				GenerateDebugInformation="true"

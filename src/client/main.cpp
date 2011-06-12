@@ -1,15 +1,20 @@
+#include <cstdlib>
+#include <iostream>
+#include <fstream>
+#include <algorithm>
+
+#include <boost/thread.hpp>
+#include <boost/algorithm/string.hpp> 
+
+#include <cryptopp\ripemd.h>
+#include <cryptopp\hex.h>
+
 #include "grid_node.h"
 #include "grid_client.h"
 #include "input.h"
 #include "grid_task.h"
 #include "simple_exception.hpp"
 #include "menu.h"
-#include <cstdlib>
-#include <iostream>
-#include <fstream>
-#include <boost/thread.hpp>
-#include <algorithm>
-#include <boost/algorithm/string.hpp> 
 
 int main(int argc, char *argv[])
 {
@@ -23,6 +28,40 @@ int main(int argc, char *argv[])
 
 		grid_client gc;
 		gc.run(addresses, ports);
+
+		// LOGIN
+		CryptoPP::RIPEMD320 hasher;
+		std::string login;
+		std::string password;
+		char buffer[CryptoPP::RIPEMD320::DIGESTSIZE/* + 1*/];
+		bool incorrect_login;
+		do
+		{
+			incorrect_login = false;
+			std::cout << "login: ";
+			std::getline(std::cin, login);
+			if (login.empty())
+			{
+				std::cout << "login is empty" << std::endl;
+				incorrect_login = true;
+				continue;
+			}
+			std::cout << "password: ";
+			std::getline(std::cin, password);
+
+			// хэшируем пароль
+			hasher.CalculateDigest((byte*)buffer, (const byte*)password.c_str(), password.size());
+			//buffer[hasher.DigestSize()] = '\0';
+			//password = buffer;
+
+			password.clear();
+
+			CryptoPP::HexEncoder encoder;
+			encoder.Attach( new CryptoPP::StringSink( password ) );
+			encoder.Put( (byte*)buffer, CryptoPP::RIPEMD320::DIGESTSIZE );
+			encoder.MessageEnd();
+		} while (incorrect_login || !gc.login(login, password));
+		// LOGIN
 
 		menu_t menu = get_menu();
 		while(1)

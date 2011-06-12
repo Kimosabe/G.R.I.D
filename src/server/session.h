@@ -7,6 +7,7 @@
 #include "grid_task_execution.h"
 #include "lockable_vector.hpp"
 #include <boost/asio/streambuf.hpp>
+#include "users_manager.h"
 
 class session{
 private:
@@ -24,8 +25,12 @@ private:
 
 	void apply_task(const grid_task &task);
 	bool apply_task_command(const std::string &request);
+	bool login_request(const std::string &request);
+
+	UsersManager& users_manager_;
 public:
-	session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions);
+	session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
+		UsersManager& users_manager);
 	virtual ~session();
 
 	boost::asio::ip::tcp::socket& socket();

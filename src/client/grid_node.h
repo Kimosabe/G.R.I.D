@@ -28,6 +28,29 @@ class grid_task;
   */
 
 class grid_node : private boost::noncopyable {
+public:
+	typedef lockable_map<std::string, task_status_record> task_table_t;
+	typedef lockable_vector<grid_task> tasks_t;
+
+	grid_node(boost::asio::io_service& io_serv, const std::string &address, 
+		const std::stack<int> &ports, const int number, task_table_t &task_table, tasks_t &tasks);
+	virtual ~grid_node();
+
+	bool is_active() const			{ return active; };
+	const std::string& os() const	{ return os_; };
+
+	bool send_file(const std::string &local_name, const std::string &remote_name);
+	bool request_file(const std::string &local_name, const std::string &remote_name);
+
+	void remove_task(const std::string &name);
+	void get_result(const std::string &name);
+	void refresh_status(const std::string &name);
+	bool login(std::string& login, std::string& password);
+
+	void apply_task(const grid_task &task);
+
+	void start();
+
 private:
 	boost::asio::io_service &io_serv_;
 	boost::asio::ip::tcp::socket socket_;
@@ -50,30 +73,10 @@ private:
 		boost::asio::ip::tcp::resolver::iterator endpoint_iterator,
 		std::stack<int> &ports);
 
-	void start();
 	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
 	bool parse_task_status_request(const std::string &request);
 	bool parse_node_param_request(const std::string &request);
 
-public:
-	typedef lockable_map<std::string, task_status_record> task_table_t;
-	typedef lockable_vector<grid_task> tasks_t;
-
-	grid_node(boost::asio::io_service& io_serv, const std::string &address, 
-		const std::stack<int> &ports, const int number, task_table_t &task_table, tasks_t &tasks);
-	virtual ~grid_node();
-
-	bool is_active() const			{ return active; };
-	const std::string& os() const	{ return os_; };
-
-	bool send_file(const std::string &local_name, const std::string &remote_name);
-	bool request_file(const std::string &local_name, const std::string &remote_name);
-
-	void remove_task(const std::string &name);
-	void get_result(const std::string &name);
-	void refresh_status(const std::string &name);
-
-	void apply_task(const grid_task &task);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;

@@ -15,6 +15,7 @@ typedef unsigned __int64 uint64_t;
 #include <stdint.h>
 
 #endif
+namespace Kimo{
 
 class ACL
 {
@@ -64,8 +65,13 @@ public:
 	MSGPACK_DEFINE(m_acl);
 };
 
+} // namespace Kimo
 #else
 
+namespace Kimo{
+
 class ACL;
+
+}
 
 #endif // KIMO_ACL_H_

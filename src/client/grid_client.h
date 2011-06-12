@@ -26,6 +26,7 @@ public:
 	void remove_task(const std::string &name);
 	void get_result(const std::string &name);
 	void refresh_status(const std::string &name);
+	bool login(std::string& username, std::string& password);
 
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 
@@ -40,6 +41,9 @@ private:
 	lockable_map<std::string, task_status_record> task_table_;
 	// вектор всех актуальных заданий 
 	lockable_vector<grid_task> tasks_;
+
+	// имя пользователя
+	std::string username;
 };
 
 #endif //GRID_CLIENT_H_

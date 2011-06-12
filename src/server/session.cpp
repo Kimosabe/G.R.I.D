@@ -2,13 +2,17 @@
 #include "grid_task_execution.h"
 #include "simple_exception.hpp"
 #include <sstream>
+#include "acl.h"
+
+using Kimo::ACL;
 
 extern std::string os;
 
-session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions) : 
-	socket_(io_service), task_executions_(task_executions), file_tr(), streambuf_(), 
+session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
+				 UsersManager& users_manager)
+: 	socket_(io_service), task_executions_(task_executions), file_tr(), streambuf_(), 
 	// TODO : убрать заглушку, узнавать имя пользователя при подключении
-	username_("testuser")
+	username_("testuser"), users_manager_(users_manager)
 {
 }
 
@@ -24,29 +28,6 @@ boost::asio::ip::tcp::socket& session::socket()
 
 void session::start()
 {
-	// отправляем инфу о всех имеющиеся заданиях данного юзера
-	task_executions_.lock();
-	for(lockable_vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
-		if( (*i)->username() == username_ )
-		{
-			std::string task_msg = std::string("<task \"") + (*i)->task().name() + std::string("\" status : ");
-			if( !(*i)->active() && !(*i)->finished() )
-				task_msg.append("accepted>\v");
-			else
-			{
-				short progress = (*i)->progress();
-				task_msg.append(boost::lexical_cast<std::string>(progress));
-				task_msg.append(">\v");
-			}
-			boost::asio::write(socket_, boost::asio::buffer(task_msg.data(), task_msg.size()));
-		}
-	task_executions_.unlock();
-
-	// отправляем инфу о себе как об узле
-	// ось
-	std::string node_param = std::string("<node_param \"os\" : ") + os + std::string(">\v");
-	boost::asio::write(socket_, boost::asio::buffer(node_param.data(), node_param.size()));
-
 	async_read();
 }
 
@@ -91,6 +72,10 @@ void session::handle_read(const boost::system::error_code& error, size_t bytes_t
 					}
 					else if( apply_task_command(request) )
 						continue;
+					else if ( login_request(request) )
+					{
+						continue;
+					}
 					// пробуем что-нибудь десериализовать
 					else
 					{
@@ -259,4 +244,66 @@ bool session::apply_task_command(const std::string &request)
 	}
 	else
 		return false;
+}
+
+bool session::login_request(const std::string &request)
+{
+	const boost::regex re_status("(?xs)(^<user \\s+ \"(.+)\" \\s+ \"([\\d\\w]+)\" \\s+ login>$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re_status) )
+	{
+		std::string login = match_res[2], password = match_res[3];
+		int user_id = -1;
+
+		if (!users_manager_.isValid(login, password, true) || (user_id = users_manager_.getId(login)) < 0)
+		{
+			std::string reply = std::string("<user \"") + login + std::string("\" \"user not found\" token -1>\v");
+			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+		}
+		else if (users_manager_.isDenied(user_id, Kimo::ACL::PRIV_LOGIN))
+		{
+			std::string reply = std::string("<user \"") + login + std::string("\" \"user not allowed to login\" token -1>\v");
+			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+		}
+		else
+		{
+			long token;
+			// сгенерировать токен
+			token = users_manager_.newToken(user_id);
+			// синхронизировать токены на нодах
+			;
+			// выдать токен клиенту
+			std::string reply = std::string("<user \"") + login + std::string("\" \"accepted\" token ")
+				+ boost::lexical_cast<std::string>(token) + std::string(">\v");
+			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+
+			// отправляем инфу о всех имеющиеся заданиях данного юзера
+			task_executions_.lock();
+			for(lockable_vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+				if( (*i)->username() == username_ )
+				{
+					std::string task_msg = std::string("<task \"") + (*i)->task().name() + std::string("\" status : ");
+					if( !(*i)->active() && !(*i)->finished() )
+						task_msg.append("accepted>\v");
+					else
+					{
+						short progress = (*i)->progress();
+						task_msg.append(boost::lexical_cast<std::string>(progress));
+						task_msg.append(">\v");
+					}
+					boost::asio::write(socket_, boost::asio::buffer(task_msg.data(), task_msg.size()));
+				}
+			task_executions_.unlock();
+
+			// отправляем инфу о себе как об узле
+			// ось
+			std::string node_param = std::string("<node_param \"os\" : ") + os + std::string(">\v");
+			boost::asio::write(socket_, boost::asio::buffer(node_param.data(), node_param.size()));
+		}
+
+		return true;
+	}
+
+	return false;
 }

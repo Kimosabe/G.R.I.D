@@ -22,7 +22,12 @@ pid_t execute(const std::string &command)
 		si.hStdError = si.hStdInput = si.hStdOutput = INVALID_HANDLE_VALUE;
 		ZeroMemory(&pi, sizeof(pi));
 
-		CreateProcess(NULL, buf, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi);
+		DWORD err_no;
+		if(!CreateProcess(NULL, buf, NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi))
+		{
+			err_no = GetLastError();
+			std::cout << "CreateProcess ERROR: " << err_no << std::endl;
+		}
 
 		delete[] buf;
 		return pi.hProcess;

@@ -1,5 +1,7 @@
 #include "acl.h"
 
+namespace Kimo{
+
 ACL::ACL() : m_acl(0)
 {
 
@@ -63,3 +65,5 @@ ACL::ACL_t ACL::acl()
 {
 	return m_acl;
 }
+
+} // namespace Kimo

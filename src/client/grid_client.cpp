@@ -1,10 +1,11 @@
+#include <iostream>
+#include <utility>
 #include "grid_client.h"
 #include "grid_task.h"
 #include "simple_exception.hpp"
-#include <iostream>
-#include <utility>
 
-grid_client::grid_client() : io_serv_(), nodes_(), thread_pool_(), task_table_(), tasks_()
+grid_client::grid_client()
+: io_serv_(), nodes_(), thread_pool_(), task_table_(), tasks_()
 {
 }
 
@@ -170,3 +171,16 @@ void grid_client::tasks(grid_client::pair_string_vector &res) const
 	task_table_.unlock();
 }
 
+bool grid_client::login(std::string& username, std::string& password)
+{
+	if (nodes_.size() && nodes_.front()->login(username, password))
+	{
+		// если залогинились, запускаем взаимодецствие со всеми нодами.
+		std::vector<node_ptr>::iterator itr;
+		for (itr = nodes_.begin(); itr != nodes_.end(); ++itr)
+			(*itr)->start();
+		return true;
+	}
+
+	return false;
+}

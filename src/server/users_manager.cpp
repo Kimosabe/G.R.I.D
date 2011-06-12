@@ -1,12 +1,15 @@
 #include <iostream>
+#include <ctime>
 
 #include "users_manager.h"
+#include <CryptoPP/hex.h>
 
 using std::cout;
 using std::endl;
 
 UsersManager::UsersManager(const String& users_path)
-: m_users_path(users_path)
+: m_users_path(users_path), m_engine(time(NULL)), m_uniform(0, 0x7FFFFFFF),
+  m_token_lifetime(3600)
 {
 // TODO: Добавить загрузку данных из файла.
     loadUsers();
@@ -16,24 +19,38 @@ UsersManager::~UsersManager()
 {
 }
 
-bool UsersManager::isValid(const String& login, const String& password)
+bool UsersManager::isValid(const String& login, const String& password, bool password_already_hashed)
 {
     Users::iterator itr;
-    byte buffer[MAX_PASSWORD_HASH_SIZE + 1];
+	if (password_already_hashed)
+	{
+		for (itr = m_users_storage.begin(); itr != m_users_storage.end(); ++itr)
+			if (itr->login == login && itr->password_hash == password)
+				return true;	
+	}
+	else
+	{
+		byte buffer[MAX_PASSWORD_HASH_SIZE/* + 1*/];
 
-    m_hasher.CalculateDigest(buffer, (const byte*)password.c_str(), password.length());
-    buffer[m_hasher.DigestSize()] = '\0';
-    String password_hash = (const char*)buffer;
+		m_hasher.CalculateDigest(buffer, (const byte*)password.c_str(), password.length());
+		//buffer[m_hasher.DigestSize()] = '\0';
+		//String password_hash = (const char*)buffer;
+		String password_hash;
+		CryptoPP::HexEncoder encoder;
+		encoder.Attach( new CryptoPP::StringSink( password_hash ) );
+		encoder.Put( buffer, MAX_PASSWORD_HASH_SIZE );
+		encoder.MessageEnd();
 
-    for (itr = m_users_storage.begin(); itr != m_users_storage.end(); ++itr)
-        if (itr->login == login && itr->password_hash == password_hash)
-            return true;
+		for (itr = m_users_storage.begin(); itr != m_users_storage.end(); ++itr)
+			if (itr->login == login && itr->password_hash == password_hash)
+				return true;
+	}
 
     return false;
 }
 
 // TODO: Добавить проверку на выход за границу int'а
-int UsersManager::addUser(const String& login, const String& password)
+int UsersManager::addUser(const String& login, const String& password, bool password_already_hashed)
 {
     // Если пользователь существует, не можем добавить
     if (getId(login) >= 0)
@@ -44,7 +61,6 @@ int UsersManager::addUser(const String& login, const String& password)
         return -2;
 
     User user;
-    byte buffer[MAX_PASSWORD_HASH_SIZE + 1];
     int i, id = -1;
 
     // Ищем незанятую ячейку в хранилище пользователей.
@@ -58,10 +74,22 @@ int UsersManager::addUser(const String& login, const String& password)
 
     user.login = login;
 
-    // Вычисляем хэш пароля
-    m_hasher.CalculateDigest(buffer, (const byte*)password.c_str(), password.length());
-    buffer[m_hasher.DigestSize()] = '\0';
-    user.password_hash = (const char*)buffer;
+	if (password_already_hashed)
+	{
+		user.password_hash = password;
+	}
+	else
+	{
+		// Вычисляем хэш пароля
+		byte buffer[MAX_PASSWORD_HASH_SIZE/* + 1*/];
+		m_hasher.CalculateDigest(buffer, (const byte*)password.c_str(), password.length());
+		//buffer[m_hasher.DigestSize()] = '\0';
+		//user.password_hash = (const char*)buffer;
+		CryptoPP::HexEncoder encoder;
+		encoder.Attach( new CryptoPP::StringSink( user.password_hash ) );
+		encoder.Put( buffer, MAX_PASSWORD_HASH_SIZE );
+		encoder.MessageEnd();
+	}
 
     // Если все ячейки заняты, прийдется добавить новую.
     if (id < 0)
@@ -217,18 +245,22 @@ bool UsersManager::User::operator <(const User& user)
 }
 
 UsersManager::User::User()
-: id(-1), login(), password_hash()
+: id(-1), token(-1), token_expire_time(-1),
+  acl(), login(), password_hash()
 {
 }
 
 UsersManager::User::User(const User& user)
-: id(user.id), login(user.login), password_hash(user.password_hash), acl(user.acl)
+: id(user.id), token(user.token), token_expire_time(user.token_expire_time),
+  acl(user.acl), login(user.login), password_hash(user.password_hash)
 {
 }
 
 UsersManager::User& UsersManager::User::operator=(const User& user)
 {
     id = user.id;
+	token = user.token;
+	token_expire_time = user.token_expire_time;
     login = user.login;
     password_hash = user.password_hash;
 	acl = user.acl;
@@ -308,4 +340,36 @@ int UsersManager::deserialize(msgpack::sbuffer& buffer)
 	}
 
 	return 0;
+}
+
+long UsersManager::newToken(int id)
+{
+	if (id < 0 || m_users_storage.size() >= id)
+		return -1;
+
+	m_users_storage[id].token = m_uniform(m_engine);
+	m_users_storage[id].token_expire_time = time(NULL) + m_token_lifetime;
+
+	return m_users_storage[id].token;
+}
+
+long UsersManager::getToken(int id)
+{
+	if (id < 0 || m_users_storage.size() >= id)
+		return -1;
+
+	if (m_users_storage[id].token_expire_time < time(NULL))
+		return -2;
+
+	return m_users_storage[id].token;
+}
+
+time_t UsersManager::getTokenLifetime()
+{
+	return m_token_lifetime;
+}
+
+void UsersManager::setTokenLifetime(time_t lifetime)
+{
+	m_token_lifetime = lifetime;
 }

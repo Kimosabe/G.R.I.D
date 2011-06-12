@@ -6,10 +6,15 @@
 #include <fstream>
 #include <vector>
 
+#include <boost/random/mersenne_twister.hpp>
+#include <boost/random/uniform_int.hpp>
 #include <msgpack.hpp>
 #include <cryptopp\ripemd.h>
 
+
 #include "acl.h"
+
+using Kimo::ACL;
 
 typedef std::string String;
 typedef std::fstream Fstream;
@@ -33,10 +38,12 @@ public:
         MAX_LOGIN_SIZE = Hasher::DIGESTSIZE,
     };
     
-    bool isValid(const String& login, const String& password);
-    int addUser(const String& login, const String& password);
+    bool isValid(const String& login, const String& password, bool password_already_hashed = false);
+    int addUser(const String& login, const String& password, bool password_already_hashed = false);
     int removeUser(int id);
     int getId(const String& login);
+	long newToken(int id);
+	long getToken(int id);
 	bool isAllowed(int id, const ACL::PRIVILEGE privilege);
 	bool isDenied(int id, const ACL::PRIVILEGE privilege);
 	void allow(int id, const ACL::PRIVILEGE privilege);
@@ -44,6 +51,9 @@ public:
 
 	int serialize(msgpack::sbuffer& buffer);
 	int deserialize(msgpack::sbuffer& buffer);
+
+	time_t getTokenLifetime();
+	void setTokenLifetime(time_t lifetime);
 
     // Debug
     void printUsers(std::ostream& out);
@@ -65,6 +75,8 @@ private:
         inline bool operator<(const User&);
 
         int id;
+		long token;
+		time_t token_expire_time;
 		ACL acl;
         //char login[MAX_LOGIN_SIZE + 1];
         //byte password_hash[MAX_PASSWORD_HASH_SIZE];
@@ -72,7 +84,7 @@ private:
         String password_hash;
 
 		// дл€ сериализации
-		MSGPACK_DEFINE(id, acl, login, password_hash);
+		MSGPACK_DEFINE(id, token, token_expire_time, acl, login, password_hash);
     };
     typedef std::vector<User> Users;
 
@@ -82,6 +94,11 @@ private:
     Users m_users_storage;
     //!  ласс, вычисл€ющий хэш.
     Hasher m_hasher;
+	//! √енератор случайных чисел
+	boost::mt19937 m_engine;
+	boost::uniform_int<long> m_uniform;
+	//! ¬рем€ жизни токена
+	time_t m_token_lifetime;
 };
 
 #else
