@@ -5,6 +5,7 @@
 #include "input.h"
 #include "simple_exception.hpp"
 #include <fstream>
+#include <cstdlib>
 
 // наверное, нехорошо, что ось устанавливается в конфиг файле
 // но это в стиле C позволять выстрелить себе в ногу
@@ -12,6 +13,7 @@ std::string os;
 
 int main(int argc, char* argv[])
 {
+	setlocale(LC_ALL, "Rusian");
 	try
 	{
 		if (argc != 2)

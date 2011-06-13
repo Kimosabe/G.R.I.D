@@ -1,4 +1,5 @@
 #include "file_transferer.h"
+#include "int_types.h"
 #include <memory.h>
 
 const boost::regex file_transferer::re_download = boost::regex("(?x)(^<file \\s+ parts=(\\d+) \\s+ partsize=(\\d+) \\s+ lastpartsize=(\\d+) \\s+ name=\"( (?: [^ \" \\\\ / \\* \\? : > < \\| ] )+ )\" >$)");
@@ -49,8 +50,10 @@ bool file_transferer::request_file(const std::string &local_name, const std::str
 	try{
 		//меняем ме стами local_name и remote_name, потому что на удаленном хосте все будет наоборот
 		const std::string header = std::string("<upload_request local_name=\"") + remote_name + 
-			std::string("\" remote_name=\"") + local_name + std::string("\">\v");
+			std::string("\" remote_name=\"") + local_name + std::string("\">");
 
+		uint32_t msg_size = header.size();
+		boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 		boost::asio::write(socket_, boost::asio::buffer(header, header.size()));
 		return true;
 	}
@@ -135,9 +138,11 @@ bool file_transferer::send_file(const std::string &local_name, const std::string
 		const string header = string("<file parts=") + boost::lexical_cast<string>(parts)
 			+ string(" partsize=") + boost::lexical_cast<string>(buf_size)
 			+ string(" lastpartsize=") + boost::lexical_cast<string>(last_part_size)
-			+ string(" name=\"") + remote_name + string("\">\v");
+			+ string(" name=\"") + remote_name + string("\">");
 
 		fin.seekg(ios_base::beg);
+		uint32_t msg_size = header.size();
+		boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 		boost::asio::write(socket_, boost::asio::buffer(header, header.size()));
 		for( size_t i = 0; i < parts; ++i )
 		{

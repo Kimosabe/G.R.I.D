@@ -12,6 +12,7 @@
 #include "acl.h"
 #include "users_manager.h"
 #include "transaction.h"
+#include "memory.h"
 
 using Kimo::ACL;
 
@@ -37,92 +38,95 @@ boost::asio::ip::tcp::socket& session::socket()
 
 void session::start()
 {
-	async_read();
+	async_read_header();
 }
 
-void session::async_read()
+void session::async_read_header()
 {
 	// начинаем прием сообщений
-	streambuf_.consume(streambuf_.size());
-	boost::asio::async_read_until(socket_, streambuf_, '\v', boost::bind(&session::handle_read, 
-		this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	msg_size_ = 0;
+	boost::asio::async_read(socket_, boost::asio::buffer((char*)&msg_size_, sizeof(msg_size_)), boost::bind(&session::handle_read_header, 
+		shared_from_this(), boost::asio::placeholders::error));
 }
 
-void session::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
+void session::async_read_body()
+{
+	// начинаем прием сообщений
+	memset(data_, 0, max_length);
+	boost::asio::async_read(socket_, boost::asio::buffer(data_, msg_size_), boost::bind(&session::handle_read_body, 
+		shared_from_this(), boost::asio::placeholders::error));
+}
+
+void session::handle_read_header(const boost::system::error_code& error)
+{
+	if( !error )
+		async_read_body();
+	else
+	{
+		// возникает, когда кто-то закрыл соединение, так что это типа нормально
+		if( !(error == boost::asio::error::eof) )
+		{
+			// а все остальное странно
+			std::stringstream sout;
+			sout << "Disconnect " << std::endl << "Error " << error.message() << std::endl;
+			std::cerr << sout.str();
+		}
+		// эх, а раньше тут был delete this;
+		shared_from_this().reset();
+	}
+}
+
+void session::handle_read_body(const boost::system::error_code& error)
 {
 	if (!error)
 	{
-		if( bytes_transferred > 0 )
+		std::string request(data_, msg_size_);
+		//std::cout << "<request> " << request << " </request>" << std::endl;
+
+		// запросы на получение / отправку файлов
+		std::string local_name, remote_name;
+		if( file_tr_.recieve_file(request, socket_) )
 		{
-			std::istream ss(&streambuf_);
+#if defined(_DEBUG) || defined(DEBUG)
+			std::cout << "file accepted\n";
+#endif
+		}
+		else if( file_tr_.is_upload_request(request, local_name, remote_name) )
+		{
+			//std::cout << "upload_request : " << request << std::endl; 
+			file_tr_.send_file(local_name, remote_name, socket_);
+		}
+		else if( apply_task_command(request) )
+			;
+        else if ( login_request(request) )
+        {
+            continue;
+        }
+        else if ( transaction_begin(request) )
+            continue;
+        else if ( transaction_transfer(request) )
+            continue;
+        else if ( transaction_end(request) )
+            continue;
+		// пробуем что-нибудь десериализовать
+		else
+		{
+			msgpack::unpacked msg;
+			msgpack::unpack(&msg, request.data(), request.size());
 
-			while( !ss.eof() )
-			{
-				std::string request;
-				std::getline(ss, request, '\v');
-	
-				if( !request.empty() )
-				{
-					//std::cout << "<request> " << request << " </request>" << std::endl;
-
-					// запросы на получение / отправку файлов
-
-					std::string local_name, remote_name;
-					if( file_tr.recieve_file(request, socket_) )
-					{
-						std::cout << "file accepted\n";
-						continue;
-					}
-					else if( file_tr.is_upload_request(request, local_name, remote_name) )
-					{
-						//std::cout << "upload_request : " << request << std::endl; 
-						file_tr.send_file(local_name, remote_name, socket_);
-						continue;
-					}
-					else if( apply_task_command(request) )
-						continue;
-					else if ( login_request(request) )
-					{
-						continue;
-					}
-					else if ( transaction_begin(request) )
-						continue;
-					else if ( transaction_transfer(request) )
-						continue;
-					else if ( transaction_end(request) )
-						continue;
-					// пробуем что-нибудь десериализовать
-					else
-					{
-						msgpack::unpacked msg;
-						msgpack::unpack(&msg, request.data(), request.size());
-
-						// пробуем десериализовать объект типа grid_task
-						try{
-							grid_task task = msg.get().convert();
-							apply_task(task);
-							continue;
-						}
-						catch(std::exception &){
-						}
-
-						// здесь могут быть попытки десериализовать сообщения другого рода
-					}
-
-					std::cerr << "Unknown request : " << request << std::endl;
-				}
+			// пробуем десериализовать объект типа grid_task
+			try{
+				grid_task task = msg.get().convert();
+				apply_task(task);
+			}
+			catch(std::exception &){
+				// здесь могут быть попытки десериализовать сообщения другого рода
+				std::cerr << "Unknown request : " << request << std::endl;
 			}
 		}
-		this->async_read();
-	}
-	else
-		delete this;
-}
 
-void session::handle_write(const boost::system::error_code& error)
-{
-	if (!error)
-		this->async_read();
+		async_read_header();
+	}
 	else
 		delete this;
 }
@@ -136,18 +140,20 @@ void session::apply_task(const grid_task &task)
 	for(std::vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
 		if( (*i)->username() == username_ && (*i)->task().name() == task.name() )
 		{
-			reply = std::string("<task \"") + task.name() + std::string("\" status : already_exists>\v");
+			reply = std::string("<task \"") + task.name() + std::string("\" status : already_exists>");
 			break;
 		}
 	// если нет, то принимаем
 	if( reply.empty() )
 	{
-		reply = std::string("<task \"") + task.name() + std::string("\" status : accepted>\v");
+		reply = std::string("<task \"") + task.name() + std::string("\" status : accepted>");
 		grid_task_execution_ptr gte = grid_task_execution_ptr( new grid_task_execution(task, username_) );
 		task_executions_.push_back(gte);
 	}
 	task_executions_.unlock();
 
+	uint32_t msg_size = reply.size();
+	boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 	boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 }
 
@@ -155,6 +161,7 @@ bool session::apply_task_command(const std::string &request)
 {
 	boost::regex re_command("(?xs)(^<task \\s+ \"(.+)\" \\s+ ([_[:alpha:][:digit:]]+)>$)");
 	boost::smatch match_res;
+	uint32_t msg_size;
 
 	if( boost::regex_match(request, match_res, re_command) )
 	{
@@ -177,7 +184,9 @@ bool session::apply_task_command(const std::string &request)
 			// если не нашли, то пишем, что нет такого
 			if( !found )
 			{
-				std::string reply = std::string("<task \"") + name + std::string("\" status : no_such_task>\v");
+				std::string reply = std::string("<task \"") + name + std::string("\" status : no_such_task>");
+				msg_size = reply.size();
+				boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 				boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 			}
 		}
@@ -198,10 +207,12 @@ bool session::apply_task_command(const std::string &request)
 			std::string reply;
 			if( progress >= 0 )
 				reply = std::string("<task \"") + name + std::string("\" status : ") +
-					boost::lexical_cast<std::string>(progress) + std::string(">\v");
+					boost::lexical_cast<std::string>(progress) + std::string(">");
 			else
-				reply = std::string("<task \"") + name + std::string("\" status : no_such_task>\v");
+				reply = std::string("<task \"") + name + std::string("\" status : no_such_task>");
 
+			msg_size = reply.size();
+			boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 		}
 
@@ -224,7 +235,7 @@ bool session::apply_task_command(const std::string &request)
 			{
 				try{
 					for(grid_task::pair_name_vector::const_iterator i = gt.output_files().begin(); i < gt.output_files().end(); ++i)
-						if( this->file_tr.send_file(i->second, i->first, socket_) == false )
+						if( this->file_tr_.send_file(i->second, i->first, socket_) == false )
 							std::cerr << "Cannot return result of task " << name << " to user " <<
 								username_ << " (" << i->second << ")" << std::endl;
 						else
@@ -301,32 +312,33 @@ bool session::login_request(const std::string &request)
 			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 
-			// отправляем инфу о всех имеющиеся заданиях данного юзера
-			task_executions_.lock();
-			for(lockable_vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
-				if( (*i)->username() == username_ )
-				{
-					std::string task_msg = std::string("<task \"") + (*i)->task().name() + std::string("\" status : ");
-					if( !(*i)->active() && !(*i)->finished() )
-						task_msg.append("accepted>");
-					else
-					{
-						short progress = (*i)->progress();
-						task_msg.append(boost::lexical_cast<std::string>(progress));
-						task_msg.append(">\v");
-					}
-					length = task_msg.size();
-					boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
-					boost::asio::write(socket_, boost::asio::buffer(task_msg.data(), task_msg.size()));
-				}
-			task_executions_.unlock();
+            uint32_t msg_size;
+            // отправляем инфу о всех имеющиеся заданиях данного юзера
+            task_executions_.lock();
+            for(lockable_vector<grid_task_execution_ptr>::const_iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+                if( (*i)->username() == username_ )
+                {
+                    std::string task_msg = std::string("<task \"") + (*i)->task().name() + std::string("\" status : ");
+                    if( !(*i)->active() && !(*i)->finished() )
+                        task_msg.append("accepted>");
+                    else
+                    {
+                        short progress = (*i)->progress();
+                        task_msg.append(boost::lexical_cast<std::string>(progress));
+                        task_msg.append(">");
+                    }
+                    msg_size = task_msg.size();
+                    boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
+                    boost::asio::write(socket_, boost::asio::buffer(task_msg.data(), task_msg.size()));
+                }
+            task_executions_.unlock();
 
-			// отправляем инфу о себе как об узле
-			// ось
-			std::string node_param = std::string("<node_param \"os\" : ") + os + std::string(">");
-			length = node_param.size();
-			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
-			boost::asio::write(socket_, boost::asio::buffer(node_param.data(), node_param.size()));
+            // отправляем инфу о себе как об узле
+            // ось
+            std::string node_param = std::string("<node_param \"os\" : ") + os + std::string(">");
+            msg_size = node_param.size();
+            boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
+            boost::asio::write(socket_, boost::asio::buffer(node_param.data(), node_param.size()));
 		}
 
 		return true;

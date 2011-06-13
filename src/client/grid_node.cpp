@@ -1,16 +1,17 @@
 #include "grid_node.h"
+#include "grid_task.h"
+#include "simple_exception.hpp"
+#include <memory.h>
 #include <iostream>
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/read.hpp>
-#include "grid_task.h"
-#include "simple_exception.hpp"
 
 grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const std::stack<int> &ports,
 					 const int number, task_table_t &task_table, tasks_t &tasks) : 
-						io_serv_(io_serv), socket_(io_serv), active(false), address_(address), file_transf(),
-						streambuf_(), number_(number), task_table_(task_table), tasks_(tasks), os_()
+						io_serv_(io_serv), socket_(io_serv), active(false), address_(address), file_tr_(),
+						number_(number), task_table_(task_table), tasks_(tasks), os_(), msg_size_(0)
 {
 	if( ports.size() == 0 ) return;
 	std::stack<int> ports_(ports);
@@ -76,50 +77,79 @@ grid_node::~grid_node()
 
 void grid_node::start()
 {
-	streambuf_.consume(streambuf_.size());
-	boost::asio::async_read_until(socket_, streambuf_, '\v', boost::bind(&grid_node::handle_read,
-		this, boost::asio::placeholders::error, boost::asio::placeholders::bytes_transferred));
+	async_read_header();
+}
+
+void grid_node::async_read_header()
+{
+	msg_size_ = 0;
+	boost::asio::async_read(socket_, boost::asio::buffer((char*)&msg_size_, sizeof(msg_size_)), boost::bind(&grid_node::handle_read_header,
+		this, boost::asio::placeholders::error));
+}
+
+void grid_node::async_read_body()
+{
+	memset(data_, 0, max_length);
+	boost::asio::async_read(socket_, boost::asio::buffer(data_, msg_size_), boost::bind(&grid_node::handle_read_body,
+		this, boost::asio::placeholders::error));
+}
+
+void grid_node::handle_read_header(const boost::system::error_code &error)
+{
+	if( !error )
+		async_read_body();
+	else
+	{
+		// если соединение оборвалось само по себе, а не по вызову stop
+		if( active == true )
+		{
+			std::stringstream sout;
+			sout << "Disconnected from node " << number_ << std::endl;
+			std::cout << sout.str();
+			// ошибка eof возникает при закрытии соединения, так что это нормально
+			if( error != boost::asio::error::eof )
+			{
+				std::stringstream sout;
+				sout << "Error " << error.message() << std::endl;
+				std::cerr << sout.str();
+			}
+		}
+		active = false;
+	}
+}
+
+void grid_node::handle_read_body(const boost::system::error_code& error)
+{
+	if( !error )
+	{
+		std::string request(data_, msg_size_);
+		//std::cout << "<request> " << request << " </request>" << std::endl;
+
+		if( file_tr_.recieve_file(request, socket_) )
+			std::cout << "file accepted" << std::endl;
+		else if( parse_task_status_request(request) )
+			;
+		else if( parse_node_param_request(request) )
+			;
+		else
+			std::cout << request << std::endl;
+
+		async_read_header();
+	}
+	else
+		active = false;
 }
 
 bool grid_node::send_file(const std::string &local_name, const std::string &remote_name)
 {
 	if( !active ) return false;
-	return this->file_transf.send_file(local_name, remote_name, this->socket_);
+	return this->file_tr_.send_file(local_name, remote_name, this->socket_);
 }
 
 bool grid_node::request_file(const std::string &local_name, const std::string &remote_name)
 {
 	if( !active ) return false;
-	return this->file_transf.request_file(local_name, remote_name, this->socket_); 
-}
-
-void grid_node::handle_read(const boost::system::error_code& error, size_t bytes_transferred)
-{
-	if( !error )
-	{
-		if( bytes_transferred > 0 )
-		{
-			std::istream ss(&streambuf_);
-			std::string request;
-
-			while( !ss.eof() )
-			{
-				std::getline(ss, request, '\v');
-				if( file_transf.recieve_file(request, socket_) )
-					std::cout << "file accepted" << std::endl;
-				else if( parse_task_status_request(request) )
-					;
-				else if( parse_node_param_request(request) )
-					;
-				else
-					std::cout << request << std::endl;
-			}
-		}
-
-		this->start();
-	}
-	else
-		active = false;
+	return this->file_tr_.request_file(local_name, remote_name, this->socket_); 
 }
 
 void grid_node::apply_task(const grid_task &task)
@@ -128,7 +158,8 @@ void grid_node::apply_task(const grid_task &task)
 		msgpack::sbuffer sbuf;
 		msgpack::pack(&sbuf, task);
 		std::string message(sbuf.data(), sbuf.size());
-		message.append("\v");
+		uint32_t msg_size = message.size();
+		boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 		boost::asio::write(socket_, boost::asio::buffer(message.data(), message.size()));
 	}
 	catch(std::exception &ex){
@@ -140,6 +171,8 @@ bool grid_node::parse_task_status_request(const std::string &request)
 {
 	const boost::regex re_status("(?xs)(^<task \\s+ \"(.+)\" \\s+ status \\s+ : \\s+ ([_%[:alpha:][:digit:]]+)>$)");
 	boost::smatch match_res;
+	uint32_t msg_size;
+
 	if( boost::regex_match(request, match_res, re_status) )
 	{
 		const std::string name = match_res[2], status = match_res[3];
@@ -162,10 +195,12 @@ bool grid_node::parse_task_status_request(const std::string &request)
 			{
 				try{
 					for(grid_task::pair_name_vector::const_iterator i = gt.input_files().begin(); i < gt.input_files().end(); ++i)
-						if( this->file_transf.send_file(i->first, i->second, socket_) == false )
+						if( this->file_tr_.send_file(i->first, i->second, socket_) == false )
 							throw simple_exception(std::string("Sending ") + i->first + std::string(" failed"));
 
-					const std::string runmsg = std::string("<task \"") + gt.name() + std::string("\" run>\v");
+					const std::string runmsg = std::string("<task \"") + gt.name() + std::string("\" run>");
+					msg_size = runmsg.size();
+					boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 					boost::asio::write(socket_, boost::asio::buffer(runmsg.data(), runmsg.size()));
 
 					task_table_.lock();
@@ -186,6 +221,7 @@ bool grid_node::parse_task_status_request(const std::string &request)
 				}
 			}
 		}
+
 		// задание не принято узлом потому что уже существует задание с таким именем
 		else if( status == std::string("already_exists") )
 		{
@@ -260,6 +296,7 @@ bool grid_node::parse_node_param_request(const std::string &request)
 {
 	const boost::regex re_nparam("(?xs)(^<node_param \\s+ \"(.+)\" \\s+ : \\s+ ([_%[:alpha:][:digit:]]+)>$)");
 	boost::smatch match_res;
+
 	if( boost::regex_match(request, match_res, re_nparam) )
 	{
 		const std::string pname = match_res[2], pvalue = match_res[3];
@@ -276,21 +313,28 @@ bool grid_node::parse_node_param_request(const std::string &request)
 
 void grid_node::remove_task(const std::string &name)
 {
-	std::string request = std::string("<task \"") + name + std::string("\" remove>\v");
+	std::string request = std::string("<task \"") + name + std::string("\" remove>");
+	uint32_t msg_size = request.size();
+	boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 }
 
 void grid_node::get_result(const std::string &name)
 {
-	std::string request = std::string("<task \"") + name + std::string("\" get_result>\v");
+	std::string request = std::string("<task \"") + name + std::string("\" get_result>");
+	uint32_t msg_size = request.size();
+	boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 }
 
 void grid_node::refresh_status(const std::string &name)
 {
-	std::string request = std::string("<task \"") + name + std::string("\" status>\v");
+	std::string request = std::string("<task \"") + name + std::string("\" status>");
+	uint32_t msg_size = request.size();
+	boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 }
+
 
 bool grid_node::login(std::string& login, std::string& password)
 {
@@ -338,3 +382,11 @@ bool grid_node::login(std::string& login, std::string& password)
 
 	return false;
 }
+
+void grid_node::stop()
+{
+	active = false;
+	socket_.close();
+}
+
+

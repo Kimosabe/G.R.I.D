@@ -1,6 +1,8 @@
 #ifndef _SERVER_H
 #define _SERVER_H
 
+#include "session.h"
+#include <vector>
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
@@ -25,7 +27,8 @@ private:
 
 	lockable_vector<grid_task_execution_ptr> &task_executions_;
 
-	void handle_accept(session* new_session, const boost::system::error_code& error);
+	//void handle_accept(session* new_session, const boost::system::error_code& error);
+	void handle_accept(session_ptr new_session, const boost::system::error_code& error);
 	grid_node* parent_node_;
 };
 
