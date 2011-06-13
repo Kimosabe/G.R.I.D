@@ -20,7 +20,7 @@ extern std::string os;
 
 session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
 				 server* parent_server)
-: 	socket_(io_service), task_executions_(task_executions), file_tr(), streambuf_(), 
+: 	socket_(io_service), task_executions_(task_executions), file_tr_(), 
 	// TODO : убрать заглушку, узнавать имя пользователя при подключении
 	username_("testuser"), parent_server_(parent_server), transaction_in_progress(false)
 {
@@ -99,15 +99,13 @@ void session::handle_read_body(const boost::system::error_code& error)
 		else if( apply_task_command(request) )
 			;
         else if ( login_request(request) )
-        {
-            continue;
-        }
+            ;
         else if ( transaction_begin(request) )
-            continue;
+            ;
         else if ( transaction_transfer(request) )
-            continue;
+            ;
         else if ( transaction_end(request) )
-            continue;
+            ;
 		// пробуем что-нибудь десериализовать
 		else
 		{

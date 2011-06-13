@@ -16,7 +16,7 @@
 
 class server;
 
-class session{
+class session : public boost::enable_shared_from_this<session>, private boost::noncopyable{
 public:
 	session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
 		server* parent_server);
