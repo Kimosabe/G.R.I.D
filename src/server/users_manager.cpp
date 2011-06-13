@@ -13,6 +13,11 @@ UsersManager::UsersManager(const String& users_path)
 {
 // TODO: Добавить загрузку данных из файла.
     loadUsers();
+
+	if (m_users_storage.empty())
+	{
+
+	}
 }
 
 UsersManager::~UsersManager()
@@ -30,16 +35,8 @@ bool UsersManager::isValid(const String& login, const String& password, bool pas
 	}
 	else
 	{
-		byte buffer[MAX_PASSWORD_HASH_SIZE/* + 1*/];
-
-		m_hasher.CalculateDigest(buffer, (const byte*)password.c_str(), password.length());
-		//buffer[m_hasher.DigestSize()] = '\0';
-		//String password_hash = (const char*)buffer;
 		String password_hash;
-		CryptoPP::HexEncoder encoder;
-		encoder.Attach( new CryptoPP::StringSink( password_hash ) );
-		encoder.Put( buffer, MAX_PASSWORD_HASH_SIZE );
-		encoder.MessageEnd();
+		hash(password, password_hash);
 
 		for (itr = m_users_storage.begin(); itr != m_users_storage.end(); ++itr)
 			if (itr->login == login && itr->password_hash == password_hash)
@@ -81,14 +78,7 @@ int UsersManager::addUser(const String& login, const String& password, bool pass
 	else
 	{
 		// Вычисляем хэш пароля
-		byte buffer[MAX_PASSWORD_HASH_SIZE/* + 1*/];
-		m_hasher.CalculateDigest(buffer, (const byte*)password.c_str(), password.length());
-		//buffer[m_hasher.DigestSize()] = '\0';
-		//user.password_hash = (const char*)buffer;
-		CryptoPP::HexEncoder encoder;
-		encoder.Attach( new CryptoPP::StringSink( user.password_hash ) );
-		encoder.Put( buffer, MAX_PASSWORD_HASH_SIZE );
-		encoder.MessageEnd();
+		hash(password, user.password_hash);
 	}
 
     // Если все ячейки заняты, прийдется добавить новую.
@@ -372,4 +362,16 @@ time_t UsersManager::getTokenLifetime()
 void UsersManager::setTokenLifetime(time_t lifetime)
 {
 	m_token_lifetime = lifetime;
+}
+
+void UsersManager::hash(const String& src, String& dst)
+{
+	byte buffer[MAX_PASSWORD_HASH_SIZE];
+	CryptoPP::HexEncoder encoder;
+
+	m_hasher.CalculateDigest(buffer, (const byte*)src.c_str(), src.length());
+	
+	encoder.Attach( new CryptoPP::StringSink( dst ) );
+	encoder.Put( buffer, MAX_PASSWORD_HASH_SIZE );
+	encoder.MessageEnd();
 }

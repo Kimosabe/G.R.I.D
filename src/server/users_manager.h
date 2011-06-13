@@ -64,6 +64,7 @@ private:
     
     int loadUsers();
     int saveUsers();
+	void hash(const String& src, String& dst);
 
     //! Структура данных о пользователе.
     struct User
