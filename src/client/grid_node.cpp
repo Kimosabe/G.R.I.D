@@ -3,6 +3,7 @@
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 #include <boost/asio/read_until.hpp>
+#include <boost/asio/read.hpp>
 #include "grid_task.h"
 #include "simple_exception.hpp"
 
@@ -294,21 +295,26 @@ void grid_node::refresh_status(const std::string &name)
 bool grid_node::login(std::string& login, std::string& password)
 {
 	std::string request = std::string("<user \"") + login + std::string("\" \"") + password +
-		std::string("\" login>\v");
+		std::string("\" login>");
+	boost::uint32_t length;
+	length = request.size();
+	boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 
-	streambuf_.consume(streambuf_.size());
-	size_t bytes_transferred = boost::asio::read_until(socket_, streambuf_, '\v');
+	//streambuf_.consume(streambuf_.size());
+	boost::asio::read(socket_, boost::asio::buffer(&length, sizeof(length)));
+	boost::scoped_array<char> buffer(new char[length]);
+	size_t bytes_transferred = boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
 
 	if( bytes_transferred > 0 )
 	{
-		std::istream ss(&streambuf_);
-		std::string request;
+		//std::istream ss(&streambuf_);
+		std::string request; request.append(buffer.get(), length);
 
-		if( !ss.eof() )
+		//if( !ss.eof() )
 		{
 			const boost::regex re_status("(?xs)(^<user \\s+ \"(.+)\" \\s+ \"(.+)\" \\s+ token \\s+ (-?\\d+)>$)");
-			std::getline(ss, request, '\v');
+			//std::getline(ss, request, '\v');
 
 			boost::smatch match_res;
 			if( boost::regex_match(request, match_res, re_status) )

@@ -270,16 +270,21 @@ bool session::login_request(const std::string &request)
 	{
 		std::string login = match_res[2], password = match_res[3];
 		int user_id = -1;
+		boost::uint32_t length;
 
 		UsersManager& users_manager_ = get_parent_server()->get_parent_node()->get_users_manager();
 		if (!users_manager_.isValid(login, password, true) || (user_id = users_manager_.getId(login)) < 0)
 		{
-			std::string reply = std::string("<user \"") + login + std::string("\" \"user not found\" token -1>\v");
+			std::string reply = std::string("<user \"") + login + std::string("\" \"user not found\" token -1>");
+			length = reply.size();
+			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 		}
 		else if (users_manager_.isDenied(user_id, Kimo::ACL::PRIV_LOGIN))
 		{
-			std::string reply = std::string("<user \"") + login + std::string("\" \"user not allowed to login\" token -1>\v");
+			std::string reply = std::string("<user \"") + login + std::string("\" \"user not allowed to login\" token -1>");
+			length = reply.size();
+			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 		}
 		else
@@ -291,7 +296,9 @@ bool session::login_request(const std::string &request)
 			;
 			// выдать токен клиенту
 			std::string reply = std::string("<user \"") + login + std::string("\" \"accepted\" token ")
-				+ boost::lexical_cast<std::string>(token) + std::string(">\v");
+				+ boost::lexical_cast<std::string>(token) + std::string(">");
+			length = reply.size();
+			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 
 			// отправляем инфу о всех имеющиеся заданиях данного юзера
@@ -301,20 +308,24 @@ bool session::login_request(const std::string &request)
 				{
 					std::string task_msg = std::string("<task \"") + (*i)->task().name() + std::string("\" status : ");
 					if( !(*i)->active() && !(*i)->finished() )
-						task_msg.append("accepted>\v");
+						task_msg.append("accepted>");
 					else
 					{
 						short progress = (*i)->progress();
 						task_msg.append(boost::lexical_cast<std::string>(progress));
 						task_msg.append(">\v");
 					}
+					length = task_msg.size();
+					boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 					boost::asio::write(socket_, boost::asio::buffer(task_msg.data(), task_msg.size()));
 				}
 			task_executions_.unlock();
 
 			// отправляем инфу о себе как об узле
 			// ось
-			std::string node_param = std::string("<node_param \"os\" : ") + os + std::string(">\v");
+			std::string node_param = std::string("<node_param \"os\" : ") + os + std::string(">");
+			length = node_param.size();
+			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 			boost::asio::write(socket_, boost::asio::buffer(node_param.data(), node_param.size()));
 		}
 
@@ -331,12 +342,15 @@ bool session::transaction_begin(const std::string &request)
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
 	{
+		boost::uint32_t length;
 		transaction_in_progress = true;
 		std::string name = match_res[2], str_timestamp = match_res[3];
 		time_t timestamp = boost::lexical_cast<time_t>(str_timestamp);
 
-		std::string msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">\v");
+		std::string msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">");
 
+		length = msg.size();
+		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 		boost::asio::write(socket_, boost::asio::buffer(msg.data(), msg.size()));
 
 		return true;
@@ -352,12 +366,15 @@ bool session::transaction_transfer(const std::string &request)
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
 	{
+		boost::uint32_t length;
 		std::string name = match_res[2], data = match_res[3];
 		sbuffer_.clear();
 		sbuffer_.write(data.c_str(), data.size());
 
-		std::string msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">\v");
+		std::string msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">");
 
+		length = msg.size();
+		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 		boost::asio::write(socket_, boost::asio::buffer(msg.data(), msg.size()));
 
 		return true;
@@ -373,14 +390,17 @@ bool session::transaction_end(const std::string &request)
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
 	{
+		boost::uint32_t length;
 		std::string name = match_res[2];
 		std::string msg;
 
 		if (get_parent_server()->get_parent_node()->get_users_manager().deserialize(sbuffer_) < 0)
-			msg = std::string("<transaction \"") + name + std::string("\" status \"bad\">\v");
+			msg = std::string("<transaction \"") + name + std::string("\" status \"bad\">");
 		else
-			msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">\v");
+			msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">");
 
+		length = msg.size();
+		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 		boost::asio::write(socket_, boost::asio::buffer(msg.data(), msg.size()));
 
 		transaction_in_progress = false;

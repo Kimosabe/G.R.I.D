@@ -2,6 +2,7 @@
 #include <sstream>
 
 #include <boost/asio/read_until.hpp>
+#include <boost/asio/read.hpp>
 #include <boost/asio/write.hpp>
 #include <boost/regex.hpp>
 #include <boost/lexical_cast.hpp>
@@ -42,7 +43,9 @@ namespace Kimo
 			return true;
 
 		std::string msg = std::string("<transaction \"") + m_name + std::string("\" begin \"") +
-			boost::lexical_cast<std::string>(timestamp) + std::string("\">\v");
+			boost::lexical_cast<std::string>(timestamp) + std::string("\">");
+		boost::uint32_t length = msg.size();
+		boost::asio::write(m_socket, boost::asio::buffer(&length, sizeof(length)));
 		size_t bytes = boost::asio::write(m_socket, boost::asio::buffer(msg.data(), msg.size()));
 
 		if (bytes != msg.size())
@@ -58,7 +61,9 @@ namespace Kimo
 
 		std::string msg = std::string("<transaction \"") + m_name + std::string("\" data \"");
 		msg.append(data, size);
-		msg += "\">\v";
+		msg += "\">";
+		boost::uint32_t length = msg.size();
+		boost::asio::write(m_socket, boost::asio::buffer(&length, sizeof(length)));
 		size_t bytes = boost::asio::write(m_socket, boost::asio::buffer(msg.data(), msg.size()));
 
 		if (bytes != msg.size())
@@ -72,7 +77,9 @@ namespace Kimo
 		if (!m_socket.is_open())
 			return true;
 
-		std::string msg = std::string("<transaction \"") + m_name + std::string("\" end>\v");
+		std::string msg = std::string("<transaction \"") + m_name + std::string("\" end>");
+		boost::uint32_t length = msg.size();
+		boost::asio::write(m_socket, boost::asio::buffer(&length, sizeof(length)));
 		size_t bytes = boost::asio::write(m_socket, boost::asio::buffer(msg.data(), msg.size()));
 
 		if (bytes != msg.size())
@@ -83,20 +90,26 @@ namespace Kimo
 
 	bool Transaction::get_response()
 	{
+		boost::uint32_t length;
 		m_streambuf.consume(m_streambuf.size());
-		size_t bytes_transferred = boost::asio::read_until(m_socket, m_streambuf, '\v');
+		//size_t bytes_transferred = boost::asio::read_until(m_socket, m_streambuf, '\v');
+		boost::asio::read(m_socket, boost::asio::buffer(&length, sizeof(length)));
+
+		boost::scoped_array<char> buffer(new char[length]);
+		size_t bytes_transferred = boost::asio::read(m_socket, boost::asio::buffer(buffer.get(), length));
 
 		if(!bytes_transferred)
 			return true;
 
-		std::istream ss(&m_streambuf);
+		//std::istream ss(&m_streambuf);
 		std::string request;
 
-		if(ss.eof())
-			return true;
+		//if(ss.eof())
+		//	return true;
 
 		const boost::regex re_status("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ status \\s+ \"(.+)\">$)");
-		std::getline(ss, request, '\v');
+		//std::getline(ss, request, '\v');
+		request.append(buffer.get(), length);
 
 		boost::smatch match_res;
 		if(!boost::regex_match(request, match_res, re_status) )
