@@ -29,9 +29,6 @@ public:
 
 	server* get_parent_server();
 
-	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
-	void handle_write(const boost::system::error_code& error);
-
 private:
 	boost::asio::ip::tcp::socket socket_;	
 	const static size_t max_length = 65536; //64 kb
