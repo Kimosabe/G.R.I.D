@@ -10,6 +10,8 @@ grid_client::grid_client() : io_serv_(), nodes_(), thread_pool_(), task_table_()
 
 void grid_client::stop()
 {
+	for(std::vector<node_ptr>::iterator i = nodes_.begin(); i < nodes_.end(); ++i)
+		(*i)->stop();
 	io_serv_.stop();
 	using namespace boost;
 	for(std::vector<thread_ptr>::iterator i = thread_pool_.begin(); i < thread_pool_.end(); ++i)

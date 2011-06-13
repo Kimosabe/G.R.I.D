@@ -33,8 +33,13 @@ private:
 	boost::asio::ip::tcp::socket socket_;
 	std::string address_, os_;
 	int port_;
-	file_transferer file_transf;
-	boost::asio::streambuf streambuf_;
+
+	file_transferer file_tr_;
+
+	const static size_t max_length = 65536; //64 kb
+	char data_[max_length];
+	uint32_t msg_size_;
+
 	int number_;	// порядковый номер данного узла для клиента
 	bool active;
 
@@ -51,7 +56,11 @@ private:
 		std::stack<int> &ports);
 
 	void start();
-	void handle_read(const boost::system::error_code& error, size_t bytes_transferred);
+	void async_read_header();
+	void async_read_body();
+	void handle_read_header(const boost::system::error_code& error);
+	void handle_read_body(const boost::system::error_code& error);
+
 	bool parse_task_status_request(const std::string &request);
 	bool parse_node_param_request(const std::string &request);
 
@@ -74,6 +83,8 @@ public:
 	void refresh_status(const std::string &name);
 
 	void apply_task(const grid_task &task);
+
+	void stop();
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;

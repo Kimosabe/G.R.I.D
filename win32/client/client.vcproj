@@ -235,6 +235,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\shared\int_types.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\shared\lockable_map.hpp"
 				>
 			</File>
