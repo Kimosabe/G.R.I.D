@@ -18,6 +18,7 @@
 
 int main(int argc, char *argv[])
 {
+	typedef CryptoPP::RIPEMD256 HASHER;
 	try
 	{
 		setlocale(LC_ALL, "Russian");
@@ -30,10 +31,10 @@ int main(int argc, char *argv[])
 		gc.run(addresses, ports);
 
 		// LOGIN
-		CryptoPP::RIPEMD320 hasher;
+		HASHER hasher;
 		std::string login;
 		std::string password;
-		char buffer[CryptoPP::RIPEMD320::DIGESTSIZE/* + 1*/];
+		char buffer[HASHER::DIGESTSIZE/* + 1*/];
 		bool incorrect_login;
 		do
 		{
@@ -58,7 +59,7 @@ int main(int argc, char *argv[])
 
 			CryptoPP::HexEncoder encoder;
 			encoder.Attach( new CryptoPP::StringSink( password ) );
-			encoder.Put( (byte*)buffer, CryptoPP::RIPEMD320::DIGESTSIZE );
+			encoder.Put( (byte*)buffer, HASHER::DIGESTSIZE );
 			encoder.MessageEnd();
 		} while (incorrect_login || !gc.login(login, password));
 		// LOGIN

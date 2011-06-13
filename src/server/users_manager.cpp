@@ -11,12 +11,17 @@ UsersManager::UsersManager(const String& users_path)
 : m_users_path(users_path), m_engine(time(NULL)), m_uniform(0, 0x7FFFFFFF),
   m_token_lifetime(3600)
 {
-// TODO: ƒобавить загрузку данных из файла.
-    loadUsers();
-
-	if (m_users_storage.empty())
+	if (loadUsers() < 0 || m_users_storage.empty())
 	{
-
+		String root("root");
+		String password("vv007");
+		hash(password, password);
+		
+		addUser(root, password, true);
+	}
+	else
+	{
+		cout << m_users_storage.size() << endl;
 	}
 }
 
@@ -146,40 +151,6 @@ void UsersManager::printUsers(std::ostream& out)
 int UsersManager::loadUsers()
 {
     Fstream file(m_users_path.c_str(), Fstream::in | Fstream::binary);
-	/*
-    file.setf(Fstream::left);
-    file.seekp(0);
-    User user;
-    char buffer[MAX_LOGIN_SIZE + 1];
-
-    m_users_storage.clear();
-
-    //file >> user.id;
-    file.read((char*)(&user.id), sizeof(user.id));
-
-    file.read(buffer, MAX_LOGIN_SIZE);
-    buffer[MAX_LOGIN_SIZE] = '\0';
-    user.login = buffer;
-
-    file.read(buffer, MAX_PASSWORD_HASH_SIZE);
-    buffer[MAX_PASSWORD_HASH_SIZE] = '\0';
-    user.password_hash = buffer;
-
-    while (!file.fail())
-    {
-        m_users_storage.push_back(user);
-
-        //file >> user.id;
-        file.read((char*)(&user.id), sizeof(user.id));
-
-        file.read(buffer, MAX_LOGIN_SIZE);
-        buffer[MAX_LOGIN_SIZE] = '\0';
-        user.login = buffer;
-
-        file.read(buffer, MAX_PASSWORD_HASH_SIZE);
-        buffer[MAX_PASSWORD_HASH_SIZE] = '\0';
-        user.password_hash = buffer;
-    }*/
 
 	msgpack::sbuffer buffer;
 	char c;
@@ -194,36 +165,18 @@ int UsersManager::loadUsers()
 
 	// XXX: ужасное решение с присваиванием в каждом витке цикла
 	if (data_was_read)
-		deserialize(buffer);
+		return deserialize(buffer);
 
-    return 0;
+    return -1;
 }
 
 int UsersManager::saveUsers()
 {
-    Fstream file(m_users_path.c_str(), Fstream::out | Fstream::binary | Fstream::trunc);
-	/*
-    Users::iterator itr;
-    int width = file.width();
-    file.setf(Fstream::left);
-    file.fill('\0');
-
-    for(itr = m_users_storage.begin(); itr != m_users_storage.end(); ++itr)
-    {
-
-        file.width(width);
-        file.write((char*)(&itr->id), sizeof(itr->id));
-        //file << itr->id;
-
-        file.width(MAX_LOGIN_SIZE);
-        file << itr->login;
-
-        file.width(MAX_PASSWORD_HASH_SIZE);
-        file << itr->password_hash;
-    }*/
-
 	msgpack::sbuffer buffer;
-	serialize(buffer);
+	if (serialize(buffer) < 0)
+		return -1;
+
+	Fstream file(m_users_path.c_str(), Fstream::out | Fstream::binary | Fstream::trunc);
 	file.write(buffer.data(), buffer.size());
 
     return 0;
@@ -371,6 +324,7 @@ void UsersManager::hash(const String& src, String& dst)
 
 	m_hasher.CalculateDigest(buffer, (const byte*)src.c_str(), src.length());
 	
+	dst.clear();
 	encoder.Attach( new CryptoPP::StringSink( dst ) );
 	encoder.Put( buffer, MAX_PASSWORD_HASH_SIZE );
 	encoder.MessageEnd();
