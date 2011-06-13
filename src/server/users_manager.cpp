@@ -17,7 +17,8 @@ UsersManager::UsersManager(const String& users_path)
 		String password("vv007");
 		hash(password, password);
 		
-		addUser(root, password, true);
+		int id = addUser(root, password, true);
+		allow(id, Kimo::ACL::PRIV_ALLPRIV);
 	}
 	else
 	{
@@ -287,7 +288,7 @@ int UsersManager::deserialize(msgpack::sbuffer& buffer)
 
 long UsersManager::newToken(int id)
 {
-	if (id < 0 || m_users_storage.size() >= id)
+	if (id < 0 || m_users_storage.size() <= id)
 		return -1;
 
 	m_users_storage[id].token = m_uniform(m_engine);
@@ -298,7 +299,7 @@ long UsersManager::newToken(int id)
 
 long UsersManager::getToken(int id)
 {
-	if (id < 0 || m_users_storage.size() >= id)
+	if (id < 0 || m_users_storage.size() <= id)
 		return -1;
 
 	if (m_users_storage[id].token_expire_time < time(NULL))
