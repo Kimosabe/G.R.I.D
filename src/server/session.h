@@ -20,6 +20,7 @@ public:
 	boost::asio::ip::tcp::socket& socket();
 
 	void start();
+
 private:
 	boost::asio::ip::tcp::socket socket_;	
 	const static size_t max_length = 65536; //64 kb

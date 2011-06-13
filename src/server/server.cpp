@@ -13,7 +13,6 @@ server::~server()
 
 void server::run()
 {
-	//session* new_session = new session(io_service_, task_executions_);
 	session_ptr new_session = session_ptr(new session(io_service_, task_executions_));
 	acceptor_.async_accept(new_session->socket(), boost::bind(&server::handle_accept, this, new_session,
 			boost::asio::placeholders::error));
@@ -23,8 +22,6 @@ void server::handle_accept(session_ptr new_session, const boost::system::error_c
 {
 	if (!error)
 	{
-		boost::thread t(boost::bind(&session::start, new_session));
-		t.detach();
 		new_session->start();
 		new_session = session_ptr(new session(io_service_, task_executions_));
 	}
