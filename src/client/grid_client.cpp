@@ -1,11 +1,12 @@
 #include <iostream>
 #include <utility>
+#include <boost/asio/io_service.hpp>
 #include "grid_client.h"
 #include "grid_task.h"
 #include "simple_exception.hpp"
 
 grid_client::grid_client()
-: io_serv_(), nodes_(), thread_pool_(), task_table_(), tasks_()
+: io_serv_(), nodes_(), thread_pool_(), task_table_(), tasks_(), work_(io_serv_)
 {
 }
 

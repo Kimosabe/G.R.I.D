@@ -346,9 +346,16 @@ bool grid_node::login(std::string& login, std::string& password)
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 
 	//streambuf_.consume(streambuf_.size());
-	boost::asio::read(socket_, boost::asio::buffer(&length, sizeof(length)));
+	size_t bytes_transferred = boost::asio::read(socket_, boost::asio::buffer(&length, sizeof(length)));
+#if defined(_DEBUG) || defined(DEBUG)
+	std::cout << "received: " << bytes_transferred << " bytes for buffer" << std::endl;
+#endif
+
 	boost::scoped_array<char> buffer(new char[length]);
-	size_t bytes_transferred = boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
+	bytes_transferred = boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
+#if defined(_DEBUG) || defined(DEBUG)
+	std::cout << "received: " << bytes_transferred << " bytes of login response" << std::endl;
+#endif
 
 	if( bytes_transferred > 0 )
 	{

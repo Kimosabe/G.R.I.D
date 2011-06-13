@@ -44,6 +44,7 @@ private:
 
 	// имя пользователя
 	std::string username;
+	boost::asio::io_service::work work_;
 };
 
 #endif //GRID_CLIENT_H_

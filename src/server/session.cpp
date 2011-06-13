@@ -307,8 +307,19 @@ bool session::login_request(const std::string &request)
 			std::string reply = std::string("<user \"") + login + std::string("\" \"accepted\" token ")
 				+ boost::lexical_cast<std::string>(token) + std::string(">");
 			length = reply.size();
+#if defined(_DEBUG) || defined(DEBUG)
+			std::cout << "sending: " << reply << std::endl;
+			size_t sended = 
+#endif
 			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
+#if defined(_DEBUG) || defined(DEBUG)
+			std::cout << "sended: " << sended << " bytes of size" << std::endl;
+			sended = 
+#endif
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+#if defined(_DEBUG) || defined(DEBUG)
+			std::cout << "sended: " << sended << " bytes of reply" << std::endl;
+#endif
 
             uint32_t msg_size;
             // отправляем инфу о всех имеющиеся заданиях данного юзера
