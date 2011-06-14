@@ -10,7 +10,7 @@
 typedef boost::shared_ptr<boost::thread> thread_ptr;
 
 /**
- * клиент грид-системы
+ * клиент системы
  */
 
 class grid_client{

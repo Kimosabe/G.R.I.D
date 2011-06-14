@@ -24,7 +24,7 @@
 class grid_task;
 
 /**
-  * соединение с одним из узлов грид системы
+  * соединение с одним из узлов системы
   */
 
 class grid_node : private boost::noncopyable {
@@ -69,8 +69,10 @@ public:
 	typedef lockable_vector<grid_task> tasks_t;
 
 	grid_node(boost::asio::io_service& io_serv, const std::string &address, 
-		const std::stack<int> &ports, const int number, task_table_t &task_table, tasks_t &tasks);
+		 const int number, task_table_t &task_table, tasks_t &tasks);
 	virtual ~grid_node();
+
+	void start_connect(const std::stack<int> &ports);
 
 	bool is_active() const			{ return active; };
 	const std::string& os() const	{ return os_; };

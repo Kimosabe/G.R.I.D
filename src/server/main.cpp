@@ -42,6 +42,7 @@ int main(int argc, char* argv[])
 
 		grid_node node(boost::lexical_cast<short>(argv[1]), addresses, ports);
 		node.run();
+		node.wait();
 
 		return 0;
 	}

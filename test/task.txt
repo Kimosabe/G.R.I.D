@@ -1,11 +1,11 @@
 <task name = gg>
 	<command>
-		gg.exe
+		gg1.exe
 		dir
 	</command>
   	#some other comment
 #<input>
-#	a.txt | b.txt
+#	gg.exe | gg1.exe
 #</input>
 <output>
 	gg2.txt | gg1.txt

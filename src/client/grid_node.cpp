@@ -6,10 +6,14 @@
 #include <fstream>
 #include <boost/lexical_cast.hpp>
 
-grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const std::stack<int> &ports,
-					 const int number, task_table_t &task_table, tasks_t &tasks) : 
+grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const int number,
+					 task_table_t &task_table, tasks_t &tasks) : 
 						io_serv_(io_serv), socket_(io_serv), active(false), address_(address), file_tr_(),
 						number_(number), task_table_(task_table), tasks_(tasks), os_(), msg_size_(0)
+{
+}
+
+void grid_node::start_connect(const std::stack<int> &ports)
 {
 	if( ports.size() == 0 ) return;
 	std::stack<int> ports_(ports);

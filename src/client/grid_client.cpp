@@ -32,11 +32,13 @@ bool grid_client::run(const std::vector<std::string> &addresses,
 
 	// пробуем подключиться к каждому узлу из списка адресов используя для каждого список
 	// возможных портов
-	for(int i = 0; i < nodes_num; ++addr_iter,++port_iter,++i)
+
+	for(int i = 0; i < nodes_num; ++addr_iter, ++port_iter, ++i)
 	{
 		try{
-			node_ptr newnode = node_ptr( new grid_node(io_serv_, *addr_iter, *port_iter, i, task_table_, tasks_) );
-			nodes_.push_back( newnode );
+			node_ptr newnode = node_ptr( new grid_node(io_serv_, *addr_iter, i, task_table_, tasks_) );
+			newnode->start_connect(*port_iter);
+			nodes_.push_back(newnode);
 		}
 		catch(std::exception &ex){
 			std::cerr << ex.what() << std::endl;
@@ -44,13 +46,13 @@ bool grid_client::run(const std::vector<std::string> &addresses,
 	}
 
 	thread_pool_.clear();
-	thread_pool_.resize( nodes_.size() );
+	thread_pool_.resize(nodes_.size());
 	vector<thread_ptr>::iterator thread_iter = thread_pool_.begin();
 
 	// создаем столько потоков, сколько имеется узлов
 	for(; thread_iter < thread_pool_.end(); ++thread_iter)
-		*thread_iter = thread_ptr( new boost::thread( boost::bind(&boost::asio::io_service::run,
-									&io_serv_) ) );
+		*thread_iter = thread_ptr( new boost::thread( boost::bind(&boost::asio::io_service::run, &io_serv_) ) );
+									
 
 #if defined(_DEBUG) || defined(DEBUG)
 	std::cout << nodes_.size() << " nodes total" << std::endl;

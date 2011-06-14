@@ -1,5 +1,4 @@
 #include "session.h"
-#include "grid_task_execution.h"
 #include "simple_exception.hpp"
 #include "memory.h"
 #include <sstream>
@@ -7,7 +6,7 @@
 extern std::string os;
 
 session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions) : 
-	socket_(io_service), task_executions_(task_executions), file_tr_(), msg_size_(0), 
+	socket_(io_service), task_executions_(task_executions), file_tr_(), msg_size_(0),
 	// TODO : убрать заглушку, узнавать имя пользователя при подключении
 	username_("testuser")
 {
@@ -21,7 +20,6 @@ boost::asio::ip::tcp::socket& session::socket()
 {
 	return socket_;
 }
-
 
 void session::start()
 {
@@ -133,7 +131,7 @@ void session::handle_read_body(const boost::system::error_code& error)
 		async_read_header();
 	}
 	else
-		delete this;
+		shared_from_this().reset();
 }
 
 void session::apply_task(const grid_task &task)
