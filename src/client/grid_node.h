@@ -53,6 +53,7 @@ public:
 	void deny_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege);
 
 	void apply_task(const grid_task &task);
+	long getToken();
 
     void stop();
 	void start();
@@ -80,6 +81,8 @@ private:
 	const static size_t maxsize = 4096;
 	char buf[maxsize];
 
+	long m_token;
+
 	void handle_connect(const boost::system::error_code& err,
 		boost::asio::ip::tcp::resolver::iterator endpoint_iterator,
 		std::stack<int> &ports);
@@ -92,6 +95,7 @@ private:
 	bool parse_task_status_request(const std::string &request);
 	bool parse_node_param_request(const std::string &request);
 	bool parse_users_managment_request(const std::string &request);
+	bool parse_token_request(const std::string &request);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;

@@ -176,14 +176,30 @@ void grid_client::tasks(grid_client::pair_string_vector &res) const
 
 bool grid_client::login(std::string& username, std::string& password)
 {
-	if (nodes_.size() && nodes_.front()->login(username, password))
+	bool active_found = false;
+	if (nodes_.size())
 	{
-		// если залогинились, запускаем взаимодецствие со всеми нодами.
-		std::vector<node_ptr>::iterator itr;
-		for (itr = nodes_.begin(); itr != nodes_.end(); ++itr)
-			(*itr)->start();
-		return true;
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				active_found = true;
+				if ((*itr)->login(username, password))
+				{
+					user_token = (*itr)->getToken();
+					// если залогинились, запускаем взаимодецствие со всеми нодами.
+					std::vector<node_ptr>::iterator itr;
+					for (itr = nodes_.begin(); itr != nodes_.end(); ++itr)
+						(*itr)->start();
+					return true;
+				}
+			}
+		}
 	}
+
+	if (!active_found)
+		std::cerr << "No nodes are available" << std::endl;
 
 	return false;
 }

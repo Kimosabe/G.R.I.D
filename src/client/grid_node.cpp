@@ -11,7 +11,7 @@
 grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const std::stack<int> &ports,
 					 const int number, task_table_t &task_table, tasks_t &tasks) : 
 						io_serv_(io_serv), socket_(io_serv), active(false), address_(address), file_tr_(),
-						number_(number), task_table_(task_table), tasks_(tasks), os_(), msg_size_(0)
+						number_(number), task_table_(task_table), tasks_(tasks), os_(), msg_size_(0), m_token(-1)
 {
 	if( ports.size() == 0 ) return;
 	std::stack<int> ports_(ports);
@@ -383,6 +383,15 @@ bool grid_node::login(std::string& login, std::string& password)
 					std::cerr << "can't login: wrong token" << std::endl;
 				else
 				{
+					boost::asio::read(socket_, boost::asio::buffer(&length, sizeof(length)));
+					buffer.reset(new char[length]);
+					boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
+					request = buffer.get();
+					if (!grid_node::parse_token_request(request))
+					{
+						std::cerr << "wrong token" << std::endl;
+						return false;
+					}
 					return true;
 				}
 			}
@@ -420,7 +429,6 @@ bool grid_node::parse_users_managment_request(const std::string& request)
 {
 	const boost::regex re_status("(?xs)(^<(\\w+) \\s+ (\\w+) \\s+ \"(.+)\" status \"([\\d\\w]+)\">$)");
 	boost::smatch match_res;
-	uint32_t msg_size;
 
 	if( boost::regex_match(request, match_res, re_status) )
 	{
@@ -457,4 +465,32 @@ void grid_node::deny_privilege(const std::string& name, const Kimo::ACL::ACL_t p
 
 	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
+}
+
+bool grid_node::parse_token_request(const std::string &request)
+{
+	const boost::regex re_status("(?xs)(^<user token \\s+ \"([-\\d]+)\">$)");
+	boost::smatch match_res;
+
+	if( boost::regex_match(request, match_res, re_status) )
+	{
+		std::string token_str = match_res[2];
+		long token = boost::lexical_cast<long>(token_str);
+
+		if (token < 0)
+		{
+			std::cerr << "wrong token received" << std::endl;
+		}
+
+		m_token = token;
+
+		return true;
+	}
+
+	return false;
+}
+
+long grid_node::getToken()
+{
+	return m_token;
 }
