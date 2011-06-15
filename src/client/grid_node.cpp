@@ -131,6 +131,8 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 			;
 		else if( parse_node_param_request(request) )
 			;
+		else if ( parse_users_managment_request(request) )
+			;
 		else
 			std::cout << request << std::endl;
 
@@ -405,23 +407,54 @@ void grid_node::add_user(const std::string& name, const std::string& password)
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 }
 
-bool grid_node::parse_user_request(const std::string& request)
+void grid_node::remove_user(const std::string& name)
 {
-	const boost::regex re_status("(?xs)(^<user (\\d+) \\s+ \"(.+)\" status \"([\\d\\w]+)\">$)");
+	std::string request = std::string("<user remove \"") + name + std::string("\" \"\">");
+	boost::uint32_t msg_size = request.size();
+
+	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
+}
+
+bool grid_node::parse_users_managment_request(const std::string& request)
+{
+	const boost::regex re_status("(?xs)(^<(\\w+) \\s+ (\\w+) \\s+ \"(.+)\" status \"([\\d\\w]+)\">$)");
 	boost::smatch match_res;
 	uint32_t msg_size;
 
 	if( boost::regex_match(request, match_res, re_status) )
 	{
-		const std::string op = match_res[2], name = match_res[3], status = match_res[4];
+		const std::string type = match_res[2], op = match_res[3], name = match_res[4], status = match_res[5];
 
 		if (status != "ok")
 		{
-			std::cerr << "operation \"" << op << "\" on user \"" << name << "\" failed: " << status << std::endl;
+			std::cerr << type << " operation \"" << op << "\" on user \"" << name << "\" failed: " << status << std::endl;
 		}
 
 		return true;
 	}
 
 	return false;
+}
+
+void grid_node::allow_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege)
+{
+	std::string str_privilege = boost::lexical_cast<std::string>(privilege);
+	std::string request = std::string("<privilege allow \"") + str_privilege
+		+ std::string("\" to \"") + name + std::string("\">");
+	boost::uint32_t msg_size = request.size();
+
+	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
+}
+
+void grid_node::deny_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege)
+{
+	std::string str_privilege = boost::lexical_cast<std::string>(privilege);
+	std::string request = std::string("<privilege deny \"") + str_privilege
+		+ std::string("\" to \"") + name + std::string("\">");
+	boost::uint32_t msg_size = request.size();
+
+	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
 }

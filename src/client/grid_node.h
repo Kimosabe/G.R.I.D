@@ -20,6 +20,7 @@
 #include "lockable_map.hpp"
 #include "lockable_vector.hpp"
 #include "task_status_record.h"
+#include "acl.h"
 
 class grid_task;
 
@@ -47,6 +48,9 @@ public:
 	void refresh_status(const std::string &name);
 	bool login(std::string& login, std::string& password);
 	void add_user(const std::string& name, const std::string& password);
+	void remove_user(const std::string& name);
+	void allow_privilege(const Kimo::ACL::ACL_t privilege);
+	void deny_privilege(const Kimo::ACL::ACL_t privilege);
 
 	void apply_task(const grid_task &task);
 
@@ -87,7 +91,7 @@ private:
 
 	bool parse_task_status_request(const std::string &request);
 	bool parse_node_param_request(const std::string &request);
-	bool parse_user_request(const std::string &request);
+	bool parse_users_managment_request(const std::string &request);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;
