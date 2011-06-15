@@ -8,9 +8,9 @@
 
 #include <boost/random/mersenne_twister.hpp>
 #include <boost/random/uniform_int.hpp>
+#include <boost/thread/mutex.hpp>
 #include <msgpack.hpp>
 #include <cryptopp\ripemd.h>
-
 
 #include "acl.h"
 
@@ -54,6 +54,9 @@ public:
 
 	time_t getTokenLifetime();
 	void setTokenLifetime(time_t lifetime);
+	time_t getTokenTimestamp(int user_id);
+	time_t getLastModified();
+	boost::mutex& mutex();
 
     // Debug
     void printUsers(std::ostream& out);
@@ -88,11 +91,18 @@ private:
 		MSGPACK_DEFINE(id, token, token_expire_time, acl, login, password_hash);
     };
     typedef std::vector<User> Users;
+	struct __Users
+	{
+		Users users;
+		//! время последней омдификации
+		time_t m_last_modified;
+		MSGPACK_DEFINE(users, m_last_modified);
+	};
 
     //! Зашифрованный файл с данными по пользователям.
     String m_users_path;
     //! Вектор со всеми данными по пользователям.
-    Users m_users_storage;
+    __Users m_users_storage;
     //! Класс, вычисляющий хэш.
     Hasher m_hasher;
 	//! Генератор случайных чисел
@@ -100,6 +110,8 @@ private:
 	boost::uniform_int<long> m_uniform;
 	//! Время жизни токена
 	time_t m_token_lifetime;
+	//! мьютекс о_О
+	boost::mutex m_mutex;
 };
 
 #else

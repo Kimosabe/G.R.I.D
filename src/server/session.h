@@ -44,13 +44,15 @@ private:
 	void async_read_header();
 	void async_read_body();
     
-    void sync_data(std::string& transaction_name, time_t timestamp);
+    void sync_data(const std::string& transaction_name, time_t timestamp);
 
 	bool transaction_begin(const std::string &request);
 	bool transaction_transfer(const std::string &request);
 	bool transaction_end(const std::string &request);
 
     bool login_request(const std::string &request);
+	bool user_manage_request(const std::string &request);
+	bool privilege_manage_request(const std::string &request);
 
 	void handle_read_header(const boost::system::error_code& error);
 	void handle_read_body(const boost::system::error_code& error);
@@ -61,6 +63,9 @@ private:
     server* parent_server_;
 	msgpack::sbuffer sbuffer_;
 	bool transaction_in_progress;
+	int m_user_id;
+	long m_user_token;
+	time_t m_user_token_timestamp;
 };
 
 typedef boost::shared_ptr<session> session_ptr;

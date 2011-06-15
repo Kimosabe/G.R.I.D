@@ -338,8 +338,8 @@ void grid_node::refresh_status(const std::string &name)
 
 bool grid_node::login(std::string& login, std::string& password)
 {
-	std::string request = std::string("<user \"") + login + std::string("\" \"") + password +
-		std::string("\" login>");
+	std::string request = std::string("<user login \"") + login + std::string("\" \"") + password +
+		std::string("\">");
 	boost::uint32_t length;
 	length = request.size();
 	boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
@@ -364,7 +364,7 @@ bool grid_node::login(std::string& login, std::string& password)
 
 		//if( !ss.eof() )
 		{
-			const boost::regex re_status("(?xs)(^<user \\s+ \"(.+)\" \\s+ \"(.+)\" \\s+ token \\s+ (-?\\d+)>$)");
+			const boost::regex re_status("(?xs)(^<user login \\s+ \"(.+)\" \\s+ status \\s+ \"(.+)\">$)");
 			//std::getline(ss, request, '\v');
 
 			boost::smatch match_res;
@@ -375,7 +375,7 @@ bool grid_node::login(std::string& login, std::string& password)
 
 				if (received_login != login)
 					std::cerr << "can't login: wrong login received" << std::endl;
-				else if (status != "accepted")
+				else if (status != "ok")
 					std::cerr << "can't login: " << status << std::endl;
 				else if (token < 0)
 					std::cerr << "can't login: wrong token" << std::endl;
@@ -396,4 +396,32 @@ void grid_node::stop()
 	socket_.close();
 }
 
+void grid_node::add_user(const std::string& name, const std::string& password)
+{
+	std::string request = std::string("<user add \"") + name + std::string("\" \"") + password + std::string("\">");
+	boost::uint32_t msg_size = request.size();
 
+	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), request.size()));
+}
+
+bool grid_node::parse_user_request(const std::string& request)
+{
+	const boost::regex re_status("(?xs)(^<user (\\d+) \\s+ \"(.+)\" status \"([\\d\\w]+)\">$)");
+	boost::smatch match_res;
+	uint32_t msg_size;
+
+	if( boost::regex_match(request, match_res, re_status) )
+	{
+		const std::string op = match_res[2], name = match_res[3], status = match_res[4];
+
+		if (status != "ok")
+		{
+			std::cerr << "operation \"" << op << "\" on user \"" << name << "\" failed: " << status << std::endl;
+		}
+
+		return true;
+	}
+
+	return false;
+}

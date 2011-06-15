@@ -3,6 +3,7 @@
 #include <set>
 
 #include <msgpack.hpp>
+#include <boost/thread/locks.hpp>
 
 #include "simple_exception.hpp"
 #include "session.h"
@@ -106,6 +107,10 @@ void session::handle_read_body(const boost::system::error_code& error)
             ;
         else if ( transaction_end(request) )
             ;
+		else if ( user_manage_request(request) )
+			;
+		else if ( privilege_manage_request(request) )
+			;
 		// пробуем что-нибудь десериализовать
 		else
 		{
@@ -272,7 +277,7 @@ bool session::apply_task_command(const std::string &request)
 
 bool session::login_request(const std::string &request)
 {
-	const boost::regex re_status("(?xs)(^<user \\s+ \"(.+)\" \\s+ \"([\\d\\w]+)\" \\s+ login>$)");
+	const boost::regex re_status("(?xs)(^<user login \\s+ \"(.+)\" \\s+ \"([\\d\\w]+)\">$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re_status) )
@@ -284,28 +289,29 @@ bool session::login_request(const std::string &request)
 		UsersManager& users_manager_ = get_parent_server()->get_parent_node()->get_users_manager();
 		if (!users_manager_.isValid(login, password, true) || (user_id = users_manager_.getId(login)) < 0)
 		{
-			std::string reply = std::string("<user \"") + login + std::string("\" \"user not found\" token -1>");
+			std::string reply = std::string("<user login \"") + login + std::string("\" status \"user not found\">");
 			length = reply.size();
 			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 		}
 		else if (users_manager_.isDenied(user_id, Kimo::ACL::PRIV_LOGIN))
 		{
-			std::string reply = std::string("<user \"") + login + std::string("\" \"user not allowed to login\" token -1>");
+			std::string reply = std::string("<user login \"") + login + std::string("\" status \"user not allowed to login\">");
 			length = reply.size();
 			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 		}
 		else
 		{
+			m_user_id = user_id;
+			username_ = login;
 			long token;
 			// сгенерировать токен
 			token = users_manager_.newToken(user_id);
 			// синхронизировать токены на нодах
-			;
-			// выдать токен клиенту
-			std::string reply = std::string("<user \"") + login + std::string("\" \"accepted\" token ")
-				+ boost::lexical_cast<std::string>(token) + std::string(">");
+			sync_data(std::string("users"), users_manager_.getLastModified());
+
+			std::string reply = std::string("<user login \"") + login + std::string("\" status \"ok\">");
 			length = reply.size();
 #if defined(_DEBUG) || defined(DEBUG)
 			std::cout << "sending: " << reply << std::endl;
@@ -320,6 +326,12 @@ bool session::login_request(const std::string &request)
 #if defined(_DEBUG) || defined(DEBUG)
 			std::cout << "sended: " << sended << " bytes of reply" << std::endl;
 #endif
+
+			// выдать токен клиенту
+			reply = std::string("<user token \"") + boost::lexical_cast<std::string>(token) + std::string("\">");
+			length = reply.size();
+			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
+			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 
             uint32_t msg_size;
             // отправляем инфу о всех имеющиеся заданиях данного юзера
@@ -436,7 +448,7 @@ server* session::get_parent_server()
 	return parent_server_;
 }
 
-void session::sync_data(std::string& transaction_name, time_t timestamp)
+void session::sync_data(const std::string& transaction_name, time_t timestamp)
 {
 	using std::set;
 	using std::stack;
@@ -517,4 +529,100 @@ void session::sync_data(std::string& transaction_name, time_t timestamp)
 	std::cerr << "complited: " << complited_transactions << " / " << size << std::endl;
 
 	delete [] transactions;
+}
+
+bool session::user_manage_request(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<user (\\w+) \\s+ \"(.+)\" \\s+ \"(.+)\">$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		std::string op = match_res[2], name = match_res[3], password = match_res[4];
+		std::string reply = std::string("<user ") + op + std::string(" \"") + name + std::string("\" status \"");
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+		if (um.isAllowed(m_user_id, Kimo::ACL::PRIV_USERWR))
+		{
+			if (op == "add")
+			{
+				int new_user_id = um.addUser(name, password, true);
+				if (new_user_id == -1)
+					reply += std::string("already exist\">");
+				else if (new_user_id == -2)
+					reply += std::string("login is too long\">"); //Чозабред о_О
+				else
+				{
+					reply += std::string("ok\">");
+				}
+			}
+			else if (op == "remove")
+			{
+				int result = um.removeUser(um.getId(name));
+				if (result < 0)
+					reply += std::string("user not exist\">");
+				else
+				{
+					reply += std::string("ok\">");
+				}
+			}
+			sync_data(std::string("users"), um.getLastModified());
+		}
+		else
+			reply += std::string("access denied\">");
+
+		boost::uint32_t length = reply.size();
+		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
+		boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+
+		return true;
+	}
+
+	return false;
+}
+
+bool session::privilege_manage_request(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<privilege (\\w+) \\s+ \"(.+)\" \\s+ to \\s+ \"(.+)\">$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		std::string op = match_res[2], privilege = match_res[3], name = match_res[4];
+		std::string reply = std::string("<privilege ") + op + std::string(" \"") + name + std::string("\" status \"");
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+		if (um.isAllowed(m_user_id, Kimo::ACL::PRIV_USERWR))
+		{
+			int user_id = um.getId(name);
+			Kimo::ACL::ACL_t privilege_num = boost::lexical_cast<Kimo::ACL::ACL_t>(privilege);
+			Kimo::ACL::PRIVILEGE true_privilege = Kimo::ACL::makePrivilege(privilege_num);
+			if (user_id < 0)
+				reply += std::string("user not found\">");
+			else if (!Kimo::ACL::isValidPrivilege(privilege_num))
+				reply += std::string("invalid privilage\">");
+			else if (op == "allow")
+			{
+				um.allow(user_id, true_privilege);
+				reply += std::string("ok\">");
+			}
+			else if (op == "deny")
+			{
+				um.deny(user_id, true_privilege);
+				reply += std::string("ok\">");
+			}
+			else
+				reply += std::string("invalid privilege operation\">");
+
+			sync_data("users", um.getLastModified());
+		}
+		else
+			reply += std::string("access denied\">");
+
+		boost::uint32_t length = reply.size();
+		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
+		boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+
+		return true;
+	}
+
+	return false;
 }

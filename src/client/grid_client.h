@@ -27,6 +27,7 @@ public:
 	void get_result(const std::string &name);
 	void refresh_status(const std::string &name);
 	bool login(std::string& username, std::string& password);
+	void add_user(const std::string& name, const std::string& password);
 
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 

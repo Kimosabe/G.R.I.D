@@ -46,6 +46,7 @@ public:
 	void get_result(const std::string &name);
 	void refresh_status(const std::string &name);
 	bool login(std::string& login, std::string& password);
+	void add_user(const std::string& name, const std::string& password);
 
 	void apply_task(const grid_task &task);
 
@@ -86,6 +87,7 @@ private:
 
 	bool parse_task_status_request(const std::string &request);
 	bool parse_node_param_request(const std::string &request);
+	bool parse_user_request(const std::string &request);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;

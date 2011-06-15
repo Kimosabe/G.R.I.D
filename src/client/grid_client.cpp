@@ -187,3 +187,9 @@ bool grid_client::login(std::string& username, std::string& password)
 
 	return false;
 }
+
+void grid_client::add_user(const std::string& name, const std::string& password)
+{
+	if (nodes_.size())
+		nodes_.front();
+}

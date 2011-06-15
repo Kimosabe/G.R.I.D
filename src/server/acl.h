@@ -54,6 +54,8 @@ public:
 	bool isDenied(const PRIVILEGE privilege);
 	void allow(const PRIVILEGE privilege);
 	void deny(const PRIVILEGE privilege);
+	static bool isValidPrivilege(ACL_t privilege);
+	static PRIVILEGE makePrivilege(ACL_t privilege);
 
 	ACL_t acl();
 
