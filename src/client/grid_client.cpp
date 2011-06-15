@@ -191,5 +191,71 @@ bool grid_client::login(std::string& username, std::string& password)
 void grid_client::add_user(const std::string& name, const std::string& password)
 {
 	if (nodes_.size())
-		nodes_.front();
+	{
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				(*itr)->add_user(name, password);
+				return;
+			}
+		}
+	}
+
+	std::cerr << "no nodes are active" << std::endl;
+}
+
+void grid_client::remove_user(const std::string& name)
+{
+	if (nodes_.size())
+	{
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				(*itr)->remove_user(name);
+				return;
+			}
+		}
+	}
+
+	std::cerr << "no nodes are active" << std::endl;
+}
+
+void grid_client::allow_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege)
+{
+	if (nodes_.size())
+	{
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				(*itr)->allow_privilege(name, privilege);
+				return;
+			}
+		}
+	}
+
+	std::cerr << "no nodes are active" << std::endl;
+}
+
+void grid_client::deny_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege)
+{
+	if (nodes_.size())
+	{
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				(*itr)->deny_privilege(name, privilege);
+				return;
+			}
+		}
+	}
+
+	std::cerr << "no nodes are active" << std::endl;
 }

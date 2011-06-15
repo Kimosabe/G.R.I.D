@@ -15,6 +15,47 @@
 #include "grid_task.h"
 #include "simple_exception.hpp"
 #include "menu.h"
+#include "acl.h"
+
+Kimo::ACL::ACL_t getPrivilege()
+{
+	std::cout << "Privileges:" << std::endl
+		<<  "0. Login" << std::endl
+		<<  "1. Process execution" << std::endl
+		<<  "2. All processes termination" << std::endl
+		<<  "3. All users information managment" << std::endl
+		<<  "4. All users information read" << std::endl
+		<<  "5. All processes information read" << std::endl
+		<<	"6. All privileges" << std::endl << std::endl
+		<<  "7. Cancel" << std::endl;
+
+	std::string value;
+	std::getline(std::cin, value);
+	int num;
+	bool flag = true;
+	for (int i = 0; i < 3 && flag; ++i)
+	{
+	try
+	{
+		num = boost::lexical_cast<Kimo::ACL::ACL_t>(value);
+		if (num >= 0 && num < 8)
+			flag = false;
+		else
+			throw new boost::bad_lexical_cast(); // O_o что я творю??
+	}
+	catch(boost::bad_lexical_cast& ex)
+	{
+		std::cout << "wrong num, try again: ";
+	}
+	}
+
+	if (num == 7)
+		return 3;
+	else if (num == 6)
+		return Kimo::ACL::PRIV_ALLPRIV;
+
+	return Kimo::ACL::ACL_t(1 << num);
+}
 
 int main(int argc, char *argv[])
 {
@@ -22,6 +63,7 @@ int main(int argc, char *argv[])
 	try
 	{
 		setlocale(LC_ALL, "Russian");
+		CryptoPP::HexEncoder encoder;
 		std::vector<std::string> addresses;
 		std::vector< std::stack<int> > ports;
 		if( !read_net(addresses, ports) )
@@ -52,12 +94,7 @@ int main(int argc, char *argv[])
 
 			// хэшируем пароль
 			hasher.CalculateDigest((byte*)buffer, (const byte*)password.c_str(), password.size());
-			//buffer[hasher.DigestSize()] = '\0';
-			//password = buffer;
-
 			password.clear();
-
-			CryptoPP::HexEncoder encoder;
 			encoder.Attach( new CryptoPP::StringSink( password ) );
 			encoder.Put( (byte*)buffer, HASHER::DIGESTSIZE );
 			encoder.MessageEnd();
@@ -141,6 +178,92 @@ int main(int argc, char *argv[])
 				gc.tasks(tasks);
 				for(grid_client::pair_string_vector::const_iterator i = tasks.begin(); i < tasks.end(); ++i)
 					std::cout << i->first << '\t' << i->second << std::endl;
+			}
+			//***********************************************************************
+			else if( user_command == menu[ADD_USER].command )
+			{
+				do
+				{
+					std::cout << "login: ";
+					std::getline(std::cin, login);	
+					incorrect_login = false;
+					if (login.empty())
+					{
+						std::cout << "login is empty" << std::endl;
+						incorrect_login = true;
+						continue;
+					}
+				} while (incorrect_login);
+				std::cout << "password: ";
+				std::getline(std::cin, password);
+				// хэшируем пароль
+				hasher.CalculateDigest((byte*)buffer, (const byte*)password.c_str(), password.size());
+				password.clear();
+				encoder.Attach( new CryptoPP::StringSink( password ) );
+				encoder.Put( (byte*)buffer, HASHER::DIGESTSIZE );
+				encoder.MessageEnd();
+
+				gc.add_user(login, password);
+			}
+			//***********************************************************************
+			else if( user_command == menu[REMOVE_USER].command )
+			{
+				do
+				{
+					std::cout << "login: ";
+					std::getline(std::cin, login);	
+					incorrect_login = false;
+					if (login.empty())
+					{
+						std::cout << "login is empty" << std::endl;
+						incorrect_login = true;
+						continue;
+					}
+				} while (incorrect_login);
+
+				gc.remove_user(login);
+			}
+			//***********************************************************************
+			else if( user_command == menu[ALLOW_PRIVILEGE].command )
+			{
+				do
+				{
+					std::cout << "login: ";
+					std::getline(std::cin, login);	
+					incorrect_login = false;
+					if (login.empty())
+					{
+						std::cout << "login is empty" << std::endl;
+						incorrect_login = true;
+						continue;
+					}
+				} while (incorrect_login);
+
+				Kimo::ACL::ACL_t privilege;
+				privilege = getPrivilege();
+				if (Kimo::ACL::isValidPrivilege(privilege))
+					gc.allow_privilege(login, privilege);
+			}
+			//***********************************************************************
+			else if( user_command == menu[DENY_PRIVILEGE].command )
+			{
+				do
+				{
+					std::cout << "login: ";
+					std::getline(std::cin, login);	
+					incorrect_login = false;
+					if (login.empty())
+					{
+						std::cout << "login is empty" << std::endl;
+						incorrect_login = true;
+						continue;
+					}
+				} while (incorrect_login);
+
+				Kimo::ACL::ACL_t privilege;
+				privilege = getPrivilege();
+				if (Kimo::ACL::isValidPrivilege(privilege))
+					gc.deny_privilege(login, privilege);
 			}
 			//***********************************************************************
 			else

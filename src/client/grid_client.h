@@ -5,6 +5,7 @@
 #include "lockable_map.hpp"
 #include "lockable_vector.hpp"
 #include "task_status_record.h"
+#include "acl.h"
 #include <boost/thread.hpp>
 
 typedef boost::shared_ptr<boost::thread> thread_ptr;
@@ -28,14 +29,18 @@ public:
 	void refresh_status(const std::string &name);
 	bool login(std::string& username, std::string& password);
 	void add_user(const std::string& name, const std::string& password);
+	void remove_user(const std::string& name);
+	void allow_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege);
+	void deny_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege);
 
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 
 	void tasks(pair_string_vector &res) const;
 private:
+	typedef std::vector<node_ptr> Nodes;
 	boost::asio::io_service io_serv_;
 
-	std::vector<node_ptr> nodes_;	
+	Nodes nodes_;	
 	std::vector<thread_ptr> thread_pool_;
 
 	// соответствие имени задания, номера узла, на который оно назначено и его статуса
