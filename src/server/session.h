@@ -53,6 +53,7 @@ private:
     bool login_request(const std::string &request);
 	bool user_manage_request(const std::string &request);
 	bool privilege_manage_request(const std::string &request);
+	bool token_request(const std::string &request);
 
 	void handle_read_header(const boost::system::error_code& error);
 	void handle_read_body(const boost::system::error_code& error);

@@ -191,7 +191,10 @@ bool grid_client::login(std::string& username, std::string& password)
 					// если залогинились, запускаем взаимодецствие со всеми нодами.
 					std::vector<node_ptr>::iterator itr;
 					for (itr = nodes_.begin(); itr != nodes_.end(); ++itr)
+					{
+						(*itr)->setToken(user_token);
 						(*itr)->start();
+					}
 					return true;
 				}
 			}

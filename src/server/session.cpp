@@ -101,6 +101,8 @@ void session::handle_read_body(const boost::system::error_code& error)
 			;
         else if ( login_request(request) )
             ;
+		else if ( token_request(request) )
+			;
         else if ( transaction_begin(request) )
             ;
         else if ( transaction_transfer(request) )
@@ -622,6 +624,22 @@ bool session::privilege_manage_request(const std::string &request)
 		boost::uint32_t length = reply.size();
 		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
 		boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+
+		return true;
+	}
+
+	return false;
+}
+
+bool session::token_request(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<token \\s+ \"([-\\d]+)\">$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		long token = boost::lexical_cast<long>(match_res[2]);
+		m_user_token = token;
 
 		return true;
 	}

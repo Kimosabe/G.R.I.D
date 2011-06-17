@@ -77,6 +77,11 @@ grid_node::~grid_node()
 
 void grid_node::start()
 {
+	std::string message = std::string("<token \"") + boost::lexical_cast<std::string>(m_token) + std::string("\">");
+	uint32_t msg_size = message.size();
+	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
+	boost::asio::write(socket_, boost::asio::buffer(message.data(), message.size()));
+
 	async_read_header();
 }
 
@@ -498,4 +503,9 @@ bool grid_node::parse_token_request(const std::string &request)
 long grid_node::getToken()
 {
 	return m_token;
+}
+
+void grid_node::setToken(long token)
+{
+	m_token = token;
 }

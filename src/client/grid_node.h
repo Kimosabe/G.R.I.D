@@ -54,6 +54,7 @@ public:
 
 	void apply_task(const grid_task &task);
 	long getToken();
+	void setToken(long token);
 
     void stop();
 	void start();
