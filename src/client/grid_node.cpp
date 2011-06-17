@@ -123,7 +123,7 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 	if( !error )
 	{
 		std::string request(data_, msg_size_);
-		//std::cout << "<request> " << request << " </request>" << std::endl;
+		std::cout << "<request> " << request << " </request>" << std::endl;
 
 		if( file_tr_.recieve_file(request, socket_) )
 			std::cout << "file accepted" << std::endl;
@@ -353,8 +353,9 @@ bool grid_node::login(std::string& login, std::string& password)
 	std::cout << "received: " << bytes_transferred << " bytes for buffer" << std::endl;
 #endif
 
-	boost::scoped_array<char> buffer(new char[length]);
+	boost::scoped_array<char> buffer(new char[length+1]);
 	bytes_transferred = boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
+	buffer[length] = '\0';
 #if defined(_DEBUG) || defined(DEBUG)
 	std::cout << "received: " << bytes_transferred << " bytes of login response" << std::endl;
 #endif
@@ -363,30 +364,30 @@ bool grid_node::login(std::string& login, std::string& password)
 	{
 		//std::istream ss(&streambuf_);
 		std::string request; request.append(buffer.get(), length);
+		std::cout << "<request> " << request << " </request>" << std::endl;
 
 		//if( !ss.eof() )
 		{
-			const boost::regex re_status("(?xs)(^<user login \\s+ \"(.+)\" \\s+ status \\s+ \"(.+)\">$)");
+			const boost::regex re_status("(?xs)(^<user \\s+ login \\s+ \"(.+)\" \\s+ status \\s+ \"(.+)\">$)");
 			//std::getline(ss, request, '\v');
 
 			boost::smatch match_res;
 			if( boost::regex_match(request, match_res, re_status) )
 			{
 				std::string received_login = match_res[2], status = match_res[3];
-				long token = boost::lexical_cast<long>(match_res[4]);
 
 				if (received_login != login)
 					std::cerr << "can't login: wrong login received" << std::endl;
 				else if (status != "ok")
 					std::cerr << "can't login: " << status << std::endl;
-				else if (token < 0)
-					std::cerr << "can't login: wrong token" << std::endl;
 				else
 				{
 					boost::asio::read(socket_, boost::asio::buffer(&length, sizeof(length)));
-					buffer.reset(new char[length]);
+					buffer.reset(new char[length+1]);
+					buffer[length] = '\0';
 					boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
 					request = buffer.get();
+					std::cout << "<request> " << request << " </request>" << std::endl;
 					if (!grid_node::parse_token_request(request))
 					{
 						std::cerr << "wrong token" << std::endl;
@@ -397,7 +398,7 @@ bool grid_node::login(std::string& login, std::string& password)
 			}
 		}
 	}
-
+	
 	return false;
 }
 
@@ -427,7 +428,7 @@ void grid_node::remove_user(const std::string& name)
 
 bool grid_node::parse_users_managment_request(const std::string& request)
 {
-	const boost::regex re_status("(?xs)(^<(\\w+) \\s+ (\\w+) \\s+ \"(.+)\" status \"([\\d\\w]+)\">$)");
+	const boost::regex re_status("(?xs)(^<(\\w+) \\s+ (\\w+) \\s+ \"(.+)\" \\s+ status \\s+ \"([\\d\\s\\w]+)\">$)");
 	boost::smatch match_res;
 
 	if( boost::regex_match(request, match_res, re_status) )
@@ -437,6 +438,10 @@ bool grid_node::parse_users_managment_request(const std::string& request)
 		if (status != "ok")
 		{
 			std::cerr << type << " operation \"" << op << "\" on user \"" << name << "\" failed: " << status << std::endl;
+		}
+		else
+		{
+			std::cout << type << " " << op << " complited" << std::endl;
 		}
 
 		return true;
@@ -469,7 +474,7 @@ void grid_node::deny_privilege(const std::string& name, const Kimo::ACL::ACL_t p
 
 bool grid_node::parse_token_request(const std::string &request)
 {
-	const boost::regex re_status("(?xs)(^<user token \\s+ \"([-\\d]+)\">$)");
+	const boost::regex re_status("(?xs)(^<user \\s+ token \\s+ \"([-\\d]+)\">$)");
 	boost::smatch match_res;
 
 	if( boost::regex_match(request, match_res, re_status) )

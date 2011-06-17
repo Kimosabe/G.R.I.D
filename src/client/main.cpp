@@ -30,20 +30,25 @@ Kimo::ACL::ACL_t getPrivilege()
 		<<  "7. Cancel" << std::endl;
 
 	std::string value;
-	std::getline(std::cin, value);
 	int num;
 	bool flag = true;
 	for (int i = 0; i < 3 && flag; ++i)
 	{
 	try
 	{
+		std::getline(std::cin, value);
 		num = boost::lexical_cast<Kimo::ACL::ACL_t>(value);
 		if (num >= 0 && num < 8)
 			flag = false;
+		else if (num >= 48 && num < 56)
+		{
+			num -= 48;
+			flag = false;
+		}
 		else
-			throw new boost::bad_lexical_cast(); // O_o что я творю??
+			std::cout << "wrong num, try again: ";
 	}
-	catch(boost::bad_lexical_cast& ex)
+	catch(boost::bad_lexical_cast& /*ex*/)
 	{
 		std::cout << "wrong num, try again: ";
 	}

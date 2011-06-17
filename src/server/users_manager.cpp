@@ -57,17 +57,18 @@ bool UsersManager::isValid(const String& login, const String& password, bool pas
 // TODO: Добавить проверку на выход за границу int'а
 int UsersManager::addUser(const String& login, const String& password, bool password_already_hashed)
 {
-	boost::lock_guard<boost::mutex> lock(m_mutex);
     // Если пользователь существует, не можем добавить
     if (getId(login) >= 0)
         return -1;
-
+	int id = -1;
+	{
+	boost::lock_guard<boost::mutex> lock(m_mutex);
     // Логин слишком длинный
     if (login.size() > MAX_LOGIN_SIZE)
         return -2;
 
     User user;
-    int i, id = -1;
+    int i;
 
     // Ищем незанятую ячейку в хранилище пользователей.
     Users::iterator itr;
@@ -105,6 +106,7 @@ int UsersManager::addUser(const String& login, const String& password, bool pass
 
 	m_users_storage.m_last_modified = time(NULL);
 
+	}
     saveUsers();
 
     return id;
@@ -127,7 +129,9 @@ int UsersManager::removeUser(int id)
 
 			m_users_storage.m_last_modified = time(NULL);
 
+			m_mutex.unlock(); // XXX
             saveUsers();
+			m_mutex.lock();
 
             return 0;
         }
@@ -308,6 +312,8 @@ int UsersManager::deserialize(msgpack::sbuffer& buffer)
 		cout << e.what() << endl;
 		return -1;
 	}
+
+	UsersManager::saveUsers();
 
 	return 0;
 }

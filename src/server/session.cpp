@@ -82,7 +82,7 @@ void session::handle_read_body(const boost::system::error_code& error)
 	if (!error)
 	{
 		std::string request(data_, msg_size_);
-		//std::cout << "<request> " << request << " </request>" << std::endl;
+		std::cout << "<request> " << request << " </request>" << std::endl;
 
 		// запросы на получение / отправку файлов
 		std::string local_name, remote_name;
@@ -277,7 +277,7 @@ bool session::apply_task_command(const std::string &request)
 
 bool session::login_request(const std::string &request)
 {
-	const boost::regex re_status("(?xs)(^<user login \\s+ \"(.+)\" \\s+ \"([\\d\\w]+)\">$)");
+	const boost::regex re_status("(?xs)(^<user \\s+ login \\s+ \"(.+)\" \\s+ \"([\\d\\w]+)\">$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re_status) )
@@ -328,10 +328,11 @@ bool session::login_request(const std::string &request)
 #endif
 
 			// выдать токен клиенту
-			reply = std::string("<user token \"") + boost::lexical_cast<std::string>(token) + std::string("\">");
-			length = reply.size();
+			std::string reply1;
+			reply1 = std::string("<user token \"") + boost::lexical_cast<std::string>(token) + std::string("\">");
+			length = reply1.size();
 			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
-			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+			boost::asio::write(socket_, boost::asio::buffer(reply1.data(), length));
 
             uint32_t msg_size;
             // отправляем инфу о всех имеющиеся заданиях данного юзера
@@ -370,7 +371,7 @@ bool session::login_request(const std::string &request)
 
 bool session::transaction_begin(const std::string &request)
 {
-	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ begin \"(.*)\">$)");
+	const boost::regex re("(?xs)(^<transaction \\s+ \"([\\d\\w]+)\" \\s+ begin \\s+ \"(.*)\">$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
@@ -394,7 +395,7 @@ bool session::transaction_begin(const std::string &request)
 
 bool session::transaction_transfer(const std::string &request)
 {
-	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ data \"(.*)\">$)");
+	const boost::regex re("(?xs)(^<transaction \\s+ \"([\\d\\w]+)\" \\s+ data \\s+ \"(.*)\">$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
@@ -418,7 +419,7 @@ bool session::transaction_transfer(const std::string &request)
 
 bool session::transaction_end(const std::string &request)
 {
-	const boost::regex re("(?xs)(^<transaction \\s+ \"(.+)\" \\s+ end>$)");
+	const boost::regex re("(?xs)(^<transaction \\s+ \"([\\d\\w]+)\" \\s+ end>$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
@@ -533,7 +534,7 @@ void session::sync_data(const std::string& transaction_name, time_t timestamp)
 
 bool session::user_manage_request(const std::string &request)
 {
-	const boost::regex re("(?xs)(^<user (\\w+) \\s+ \"(.+)\" \\s+ \"(.+)\">$)");
+	const boost::regex re("(?xs)(^<user \\s+ (\\w+) \\s+ \"(.+)\" \\s+ \"(.*)\">$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
@@ -553,6 +554,7 @@ bool session::user_manage_request(const std::string &request)
 				else
 				{
 					reply += std::string("ok\">");
+					sync_data(std::string("users"), um.getLastModified());
 				}
 			}
 			else if (op == "remove")
@@ -563,9 +565,9 @@ bool session::user_manage_request(const std::string &request)
 				else
 				{
 					reply += std::string("ok\">");
+					sync_data(std::string("users"), um.getLastModified());
 				}
 			}
-			sync_data(std::string("users"), um.getLastModified());
 		}
 		else
 			reply += std::string("access denied\">");
@@ -582,7 +584,7 @@ bool session::user_manage_request(const std::string &request)
 
 bool session::privilege_manage_request(const std::string &request)
 {
-	const boost::regex re("(?xs)(^<privilege (\\w+) \\s+ \"(.+)\" \\s+ to \\s+ \"(.+)\">$)");
+	const boost::regex re("(?xs)(^<privilege \\s+ (\\w+) \\s+ \"(.+)\" \\s+ to \\s+ \"(.+)\">$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
