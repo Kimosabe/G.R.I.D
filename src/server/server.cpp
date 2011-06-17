@@ -24,6 +24,22 @@ void server::handle_accept(session_ptr new_session, const boost::system::error_c
 {
 	if (!error)
 	{
+		/*std::string address = new_session->socket().remote_endpoint().address().to_string();
+		unsigned short port = new_session->socket().remote_endpoint().port();
+
+		grid_node::addresses_t& addresses = get_parent_node()->get_addresses();
+		grid_node::ports_t& ports = get_parent_node()->get_ports();
+		size_t i;
+
+		for (i = 0; i < addresses.size(); ++i)
+		{
+			if (addresses[i] == address)
+			{
+				std::stack<int> port_stack = ports[i];
+				std::find(port_stack.begin(), port_stack.end(), port);
+			}
+		}*/
+
 		new_session->start();
 		new_session = session_ptr(new session(io_service_, task_executions_, this));
 	}

@@ -7,6 +7,8 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/asio/read_until.hpp>
 #include <boost/asio/read.hpp>
+#include <cryptopp\ripemd.h>
+#include <cryptopp\hex.h>
 
 grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const std::stack<int> &ports,
 					 const int number, task_table_t &task_table, tasks_t &tasks) : 
@@ -138,6 +140,8 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 			;
 		else if ( parse_users_managment_request(request) )
 			;
+		else if ( parse_token_expired_reply(request) )
+			;
 		else
 			std::cout << request << std::endl;
 
@@ -260,6 +264,57 @@ bool grid_node::parse_task_status_request(const std::string &request)
 				task_table_[name] = task_status_record(number_, task_status_record::FAILED, "Failed");
 			task_table_.unlock();
 			std::cout << "task " << name << " execution failed " << std::endl;
+		}
+		// выполнение запрещено
+		else if (status == "access_denied")
+		{
+			task_table_.lock();
+			if( task_table_.count(name) > 0 )
+				task_table_[name].change_status(task_status_record::ACCESS_DENIED, "Access denied");
+			else
+				task_table_[name] = task_status_record(number_, task_status_record::ACCESS_DENIED, "Access denied");
+			task_table_.unlock();
+			std::cout << "task " << name << " access denied " << std::endl;
+		}
+		// пользователю нужно перезайти
+		else if (status == "token_expired")
+		{
+			task_table_.lock();
+			if( task_table_.count(name) > 0 )
+				task_table_.erase(task_table_.find(name));
+			task_table_.unlock();
+			std::cout << "task " << name << " need to relogin " << std::endl;
+
+			typedef CryptoPP::RIPEMD256 HASHER;
+			// LOGIN
+			HASHER hasher;
+			CryptoPP::HexEncoder encoder;
+			std::string username;
+			std::string password;
+			char buffer[HASHER::DIGESTSIZE/* + 1*/];
+			bool incorrect_login;
+			do
+			{
+				incorrect_login = false;
+				std::cout << "login: ";
+				std::getline(std::cin, username);
+				if (username.empty())
+				{
+					std::cout << "login is empty" << std::endl;
+					incorrect_login = true;
+					continue;
+				}
+				std::cout << "password: ";
+				std::getline(std::cin, password);
+
+				// хэшируем пароль
+				hasher.CalculateDigest((byte*)buffer, (const byte*)password.c_str(), password.size());
+				password.clear();
+				encoder.Attach( new CryptoPP::StringSink( password ) );
+				encoder.Put( (byte*)buffer, HASHER::DIGESTSIZE );
+				encoder.MessageEnd();
+			} while (incorrect_login || !login(username, password));
+			// LOGIN
 		}
 		// задание выполняется, (прогресс в процентах)
 		else
@@ -493,6 +548,50 @@ bool grid_node::parse_token_request(const std::string &request)
 		}
 
 		m_token = token;
+
+		return true;
+	}
+
+	return false;
+}
+
+bool grid_node::parse_token_expired_reply(const std::string &reply)
+{
+	const boost::regex re_status("(?xs)(^<token \\s+ expired>$)");
+	boost::smatch match_res;
+
+	if( boost::regex_match(reply, match_res, re_status) )
+	{
+		typedef CryptoPP::RIPEMD256 HASHER;
+		// LOGIN
+		HASHER hasher;
+		CryptoPP::HexEncoder encoder;
+		std::string username;
+		std::string password;
+		char buffer[HASHER::DIGESTSIZE/* + 1*/];
+		bool incorrect_login;
+		do
+		{
+			incorrect_login = false;
+			std::cout << "login: ";
+			std::getline(std::cin, username);
+			if (username.empty())
+			{
+				std::cout << "login is empty" << std::endl;
+				incorrect_login = true;
+				continue;
+			}
+			std::cout << "password: ";
+			std::getline(std::cin, password);
+
+			// хэшируем пароль
+			hasher.CalculateDigest((byte*)buffer, (const byte*)password.c_str(), password.size());
+			password.clear();
+			encoder.Attach( new CryptoPP::StringSink( password ) );
+			encoder.Put( (byte*)buffer, HASHER::DIGESTSIZE );
+			encoder.MessageEnd();
+		} while (incorrect_login || !login(username, password));
+		// LOGIN
 
 		return true;
 	}

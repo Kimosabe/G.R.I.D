@@ -51,8 +51,9 @@ bool grid_client::run(const std::vector<std::string> &addresses,
 
 	// создаем столько потоков, сколько имеется узлов
 	for(; thread_iter < thread_pool_.end(); ++thread_iter)
-		*thread_iter = thread_ptr( new boost::thread( boost::bind(&boost::asio::io_service::run,
-									&io_serv_) ) );
+		//*thread_iter = thread_ptr( new boost::thread( boost::bind(&boost::asio::io_service::run,
+		//							&io_serv_) ) );
+		*thread_iter = thread_ptr( new boost::thread( boost::bind(&grid_client::io_service_run, this) ) );
 
 #if defined(_DEBUG) || defined(DEBUG)
 	std::cout << nodes_.size() << " nodes total" << std::endl;
@@ -277,4 +278,16 @@ void grid_client::deny_privilege(const std::string& name, const Kimo::ACL::ACL_t
 	}
 
 	std::cerr << "no nodes are active" << std::endl;
+}
+
+void grid_client::io_service_run()
+{
+	try
+	{
+		io_serv_.run();
+	}
+	catch(std::exception& ex)
+	{
+		std::cout << "O_o: " << ex.what() << std::endl;
+	}
 }

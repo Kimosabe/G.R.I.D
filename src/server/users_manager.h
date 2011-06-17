@@ -42,8 +42,10 @@ public:
     int addUser(const String& login, const String& password, bool password_already_hashed = false);
     int removeUser(int id);
     int getId(const String& login);
+	int getId(long token);
 	long newToken(int id);
 	long getToken(int id);
+	std::string getLogin(int id);
 	bool isAllowed(int id, const ACL::PRIVILEGE privilege);
 	bool isDenied(int id, const ACL::PRIVILEGE privilege);
 	void allow(int id, const ACL::PRIVILEGE privilege);

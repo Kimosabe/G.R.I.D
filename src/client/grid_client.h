@@ -36,6 +36,8 @@ public:
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 
 	void tasks(pair_string_vector &res) const;
+
+	void io_service_run();
 private:
 	typedef std::vector<node_ptr> Nodes;
 	boost::asio::io_service io_serv_;

@@ -388,3 +388,24 @@ time_t UsersManager::getLastModified()
 	boost::lock_guard<boost::mutex> lock(m_mutex);
 	return m_users_storage.m_last_modified;
 }
+
+int UsersManager::getId(long token)
+{
+	boost::lock_guard<boost::mutex> lock(m_mutex);
+    Users::iterator itr;
+    for (itr = m_users_storage.users.begin(); itr != m_users_storage.users.end(); ++itr)
+		if (itr->token == token)
+            return itr->id;
+
+    // Пользователь не найден
+    return -1;
+}
+
+std::string UsersManager::getLogin(int id)
+{
+	boost::lock_guard<boost::mutex> lock(m_mutex);
+	if (id < 0 || m_users_storage.users.size() <= id)
+		return 0;
+
+	return m_users_storage.users[id].login;
+}

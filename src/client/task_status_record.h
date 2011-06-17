@@ -5,7 +5,7 @@
 
 class task_status_record {
 public:
-	enum task_status{SENDING, EXECUTION, DONE, FAILED, NOTACCEPTED};
+	enum task_status{SENDING, EXECUTION, DONE, FAILED, NOTACCEPTED, ACCESS_DENIED};
 
 	task_status_record();
 	task_status_record(const task_status_record &tr);

@@ -22,8 +22,7 @@ extern std::string os;
 session::session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
 				 server* parent_server)
 : 	socket_(io_service), task_executions_(task_executions), file_tr_(), 
-	// TODO : убрать заглушку, узнавать имя пользователя при подключении
-	username_("testuser"), parent_server_(parent_server), transaction_in_progress(false)
+	parent_server_(parent_server), transaction_in_progress(false)
 {
 }
 
@@ -86,7 +85,13 @@ void session::handle_read_body(const boost::system::error_code& error)
 
 		// запросы на получение / отправку файлов
 		std::string local_name, remote_name;
-		if( file_tr_.recieve_file(request, socket_) )
+		if ( login_request(request) )
+            ;
+		else if ( token_request(request) )
+			;
+		//else if (this->token_expired())
+		//	;
+		else if( file_tr_.recieve_file(request, socket_) )
 		{
 #if defined(_DEBUG) || defined(DEBUG)
 			std::cout << "file accepted\n";
@@ -98,10 +103,6 @@ void session::handle_read_body(const boost::system::error_code& error)
 			file_tr_.send_file(local_name, remote_name, socket_);
 		}
 		else if( apply_task_command(request) )
-			;
-        else if ( login_request(request) )
-            ;
-		else if ( token_request(request) )
 			;
         else if ( transaction_begin(request) )
             ;
@@ -122,7 +123,24 @@ void session::handle_read_body(const boost::system::error_code& error)
 			// пробуем десериализовать объект типа grid_task
 			try{
 				grid_task task = msg.get().convert();
-				apply_task(task);
+
+				UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+				if (um.getTokenTimestamp(m_user_id) < time(NULL))
+				{
+					std::string reply = std::string("<task \"") + task.name() + std::string("\" status : token_expired>");
+					uint32_t msg_size = reply.size();
+					boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
+					boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+				}
+				else if (um.isAllowed(m_user_id, Kimo::ACL::PRIV_PROCEXEC))
+					apply_task(task);
+				else
+				{
+					std::string reply = std::string("<task \"") + task.name() + std::string("\" status : access_denied>");
+					uint32_t msg_size = reply.size();
+					boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
+					boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+				}
 			}
 			catch(std::exception &){
 				// здесь могут быть попытки десериализовать сообщения другого рода
@@ -172,24 +190,38 @@ bool session::apply_task_command(const std::string &request)
 	{
 		const std::string name = match_res[2], command = match_res[3];
 
+		if (this->token_expired())
+			return true;
+
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
 		// запуск задания на выполнение
 		if( command == std::string("run") )
 		{
-			bool found = false;
-			task_executions_.lock();
-			for(lockable_vector<grid_task_execution_ptr>::iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
-				if( (*i)->task().name() == name && (*i)->username() == username_ )
-				{
-					(*i)->async_start();
-					found = true;
-					break;
-				}
-			task_executions_.unlock();
-
-			// если не нашли, то пишем, что нет такого
-			if( !found )
+			if ( um.isAllowed(m_user_id, Kimo::ACL::PRIV_PROCEXEC) )
 			{
-				std::string reply = std::string("<task \"") + name + std::string("\" status : no_such_task>");
+				bool found = false;
+				task_executions_.lock();
+				for(lockable_vector<grid_task_execution_ptr>::iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+					if( (*i)->task().name() == name && (*i)->username() == username_ )
+					{
+						(*i)->async_start();
+						found = true;
+						break;
+					}
+				task_executions_.unlock();
+
+				// если не нашли, то пишем, что нет такого
+				if( !found )
+				{
+					std::string reply = std::string("<task \"") + name + std::string("\" status : no_such_task>");
+					msg_size = reply.size();
+					boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
+					boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+				}
+			}
+			else
+			{
+				std::string reply = std::string("<task \"") + name + std::string("\" status : access_denied>");
 				msg_size = reply.size();
 				boost::asio::write(socket_, boost::asio::buffer((char*)&msg_size, sizeof(msg_size)));
 				boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
@@ -541,6 +573,9 @@ bool session::user_manage_request(const std::string &request)
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
 	{
+		if (this->token_expired())
+			return true;
+
 		std::string op = match_res[2], name = match_res[3], password = match_res[4];
 		std::string reply = std::string("<user ") + op + std::string(" \"") + name + std::string("\" status \"");
 		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
@@ -591,6 +626,9 @@ bool session::privilege_manage_request(const std::string &request)
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
 	{
+		if (this->token_expired())
+			return true;
+
 		std::string op = match_res[2], privilege = match_res[3], name = match_res[4];
 		std::string reply = std::string("<privilege ") + op + std::string(" \"") + name + std::string("\" status \"");
 		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
@@ -640,9 +678,25 @@ bool session::token_request(const std::string &request)
 	{
 		long token = boost::lexical_cast<long>(match_res[2]);
 		m_user_token = token;
+		m_user_id = get_parent_server()->get_parent_node()->get_users_manager().getId(token);
+		username_ = get_parent_server()->get_parent_node()->get_users_manager().getLogin(m_user_id);
 
 		return true;
 	}
 
+	return false;
+}
+
+bool session::token_expired()
+{
+	UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+	if (um.getTokenTimestamp(m_user_id) < time(NULL))
+	{
+		std::string reply = std::string("<token expired>");
+		boost::uint32_t msg_size = reply.size();
+		boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
+		boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
+		return true;
+	}
 	return false;
 }

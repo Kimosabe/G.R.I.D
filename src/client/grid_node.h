@@ -97,6 +97,7 @@ private:
 	bool parse_node_param_request(const std::string &request);
 	bool parse_users_managment_request(const std::string &request);
 	bool parse_token_request(const std::string &request);
+	bool parse_token_expired_reply(const std::string &reply);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;
