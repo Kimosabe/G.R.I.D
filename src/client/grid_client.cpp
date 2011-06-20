@@ -342,3 +342,16 @@ void grid_client::kill(size_t process_num)
 
 	nodes_[m_tasks[process_num].node_id]->kill(m_tasks[process_num].name);
 }
+
+void grid_client::kill(const std::string &task_name)
+{
+	lockable_map<std::string, task_status_record>::iterator i;
+	if ((i = task_table_.find(task_name)) != task_table_.end())
+	{
+		int node_id = i->second.node();
+		if (node_id < nodes_.size())
+		{
+			nodes_[node_id]->kill(task_name);
+		}
+	}
+}

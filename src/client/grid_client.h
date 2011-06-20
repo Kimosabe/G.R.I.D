@@ -35,6 +35,7 @@ public:
 	void request_all_processes();
 	void show_all_processes();
 	void kill(size_t process_num);
+	void kill(const std::string& task_name);
 
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 

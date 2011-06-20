@@ -237,17 +237,21 @@ bool session::apply_task_command(const std::string &request)
 		else if( command == std::string("status") )
 		{
 			short progress = -1;
+			bool interrupted = false;
 			task_executions_.lock();
 			for(lockable_vector<grid_task_execution_ptr>::iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
 				if( (*i)->task().name() == name && (*i)->username() == username_ )
 				{
 					progress = (*i)->progress();
+					interrupted = (*i)->interrupted();
 					break;
 				}
 			task_executions_.unlock();
 
 			std::string reply;
-			if( progress >= 0 )
+			if (interrupted)
+				reply = std::string("<task \"") + name + std::string("\" status : interrupted>");
+			else if( progress >= 0 )
 				reply = std::string("<task \"") + name + std::string("\" status : ") +
 					boost::lexical_cast<std::string>(progress) + std::string(">");
 			else

@@ -20,6 +20,7 @@ typedef enum {
 	REQUEST_ALL_PROCESSES,
 	SHOW_ALL_PROCESSES,
 	KILL_PROCESS,
+	KILL_TASK,
 
 } command_meaning;
 
