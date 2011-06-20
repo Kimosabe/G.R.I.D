@@ -18,6 +18,7 @@ class server;
 
 class session : public boost::enable_shared_from_this<session>, private boost::noncopyable{
 public:
+	typedef lockable_vector<grid_task_execution_ptr> task_executions_t;
 	session(boost::asio::io_service& io_service, lockable_vector<grid_task_execution_ptr> &task_executions,
 		server* parent_server);
 
@@ -39,7 +40,7 @@ private:
 
 	file_transferer file_tr_;
 	
-	lockable_vector<grid_task_execution_ptr> &task_executions_;
+	task_executions_t &task_executions_;
 
 	void async_read_header();
 	void async_read_body();
@@ -55,6 +56,7 @@ private:
 	bool privilege_manage_request(const std::string &request);
 	bool token_request(const std::string &request);
 	bool show_all_processes_request(const std::string &request);
+	bool kill_request(const std::string &request);
 
 	bool token_expired();
 

@@ -4,7 +4,7 @@
 #include <fstream>
 
 grid_task_execution::grid_task_execution(const grid_task &task, const std::string &username) : task_(task), username_(username), start_time_(), finish_time_(),
-	child_process_(INVALID_PID), async_thread_()
+	child_process_(INVALID_PID), async_thread_(), m_interrupted(false)
 {}
 
 grid_task_execution::~grid_task_execution()	
@@ -19,6 +19,11 @@ inline bool grid_task_execution::active() const
 inline bool grid_task_execution::finished() const
 {
 	return !finish_time_.is_not_a_date_time();
+}
+
+bool grid_task_execution::interrupted() const
+{
+	return m_interrupted;
 }
 
 const boost::posix_time::ptime& grid_task_execution::start_time() const
@@ -77,6 +82,7 @@ const std::string& grid_task_execution::username() const
 void  grid_task_execution::interrupt()
 {
 	async_thread_.interrupt();
+	m_interrupted = true;
 }
 
 void grid_task_execution::async_start()

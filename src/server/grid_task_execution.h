@@ -27,6 +27,8 @@ protected:
 		short sh;
 	} _char_short_t;
 
+	bool m_interrupted;
+
 public:
 	grid_task_execution(const grid_task &task, const std::string &username);
 	virtual ~grid_task_execution();
@@ -37,6 +39,7 @@ public:
 
 	bool active() const;
 	bool finished() const;
+	bool interrupted() const;
 
 	const boost::posix_time::ptime& start_time() const;
 	const boost::posix_time::ptime& finish_time() const;

@@ -115,7 +115,9 @@ void session::handle_read_body(const boost::system::error_code& error)
 			;
 		else if ( privilege_manage_request(request) )
 			;
-		else if (show_all_processes_request(request) )
+		else if ( show_all_processes_request(request) )
+			;
+		else if ( kill_request(request) )
 			;
 		// пробуем что-нибудь десериализовать
 		else
@@ -204,7 +206,7 @@ bool session::apply_task_command(const std::string &request)
 			{
 				bool found = false;
 				task_executions_.lock();
-				for(lockable_vector<grid_task_execution_ptr>::iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
+				for(task_executions_t::iterator i = task_executions_.begin(); i < task_executions_.end(); ++i)
 					if( (*i)->task().name() == name && (*i)->username() == username_ )
 					{
 						(*i)->async_start();
@@ -380,6 +382,8 @@ bool session::login_request(const std::string &request)
                     std::string task_msg = std::string("<task \"") + (*i)->task().name() + std::string("\" status : ");
                     if( !(*i)->active() && !(*i)->finished() )
                         task_msg.append("accepted>");
+					else if ((*i)->interrupted())
+						task_msg.append("interrupted>");
                     else
                     {
                         short progress = (*i)->progress();
@@ -739,6 +743,8 @@ bool session::show_all_processes_request(const std::string &request)
 				}
 				else if ((*itr)->finished())
 					task.status = std::string("finished");
+				else if ((*itr)->interrupted())
+					task.status = std::string("interrupted");
 				else
 					task.status = std::string("starting");
 				task.start_date = boost::posix_time::to_simple_string((*itr)->start_time());
@@ -765,5 +771,57 @@ bool session::show_all_processes_request(const std::string &request)
 		return true;
 	}
 
+	return false;
+}
+
+bool session::kill_request(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<kill \\s+ \"([\\d\\w_]+)\">$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		std::string name = match_res[2];
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+		std::string reply = std::string("<kill \"") + name + "\" status \"";
+		lockable_vector<grid_task_execution_ptr>::iterator itr = task_executions_.begin();
+		bool found = false;
+		for (; itr != task_executions_.end(); ++itr)
+		{
+			if ((*itr)->task().name() == name)
+			{
+				found = true;
+				if ((*itr)->username() == username_ || um.isAllowed(m_user_id, Kimo::ACL::PRIV_PROCTERM))
+				{
+					if ((*itr)->finished())
+					{
+						reply += "task finished\">";
+					}
+					else
+					{
+						// попытаться убить процесс
+						(*itr)->interrupt();
+						reply += "ok\">";
+					}
+				}
+				else
+				{
+					reply += "access denied\">";
+				}
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			reply += "task not found\">";
+		}
+
+		boost::uint32_t size = reply.size();
+		boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+		boost::asio::write(socket_, boost::asio::buffer(reply.data(), size));
+
+		return true;
+	}
 	return false;
 }

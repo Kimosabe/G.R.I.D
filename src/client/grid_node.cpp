@@ -139,6 +139,8 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 			;
 		else if ( parse_show_all_processes_reply(request) )
 			;
+		else if ( parse_kill_reply(request) )
+			;
 		else
 			std::cout << request << std::endl;
 
@@ -261,6 +263,17 @@ bool grid_node::parse_task_status_request(const std::string &request)
 				task_table_[name] = task_status_record(number_, task_status_record::FAILED, "Failed");
 			task_table_.unlock();
 			std::cout << "task " << name << " execution failed " << std::endl;
+		}
+		// задание было прервано
+		else if (status == "interrupted")
+		{
+			task_table_.lock();
+			if( task_table_.count(name) > 0 )
+				task_table_[name].change_status(task_status_record::INTERRUPTED, "Interrupted");
+			else
+				task_table_[name] = task_status_record(number_, task_status_record::INTERRUPTED, "Interrupted");
+			task_table_.unlock();
+			std::cout << "task " << name << " execution interrupted " << std::endl;
 		}
 		// выполнение запрещено
 		else if (status == "access_denied")
@@ -662,4 +675,35 @@ void grid_node::get_tasks(Kimo::TaskList &tasks)
 	m_tasks_mutex.lock();
 	tasks.insert(tasks.end(), m_tasks.begin(), m_tasks.end());
 	m_tasks_mutex.unlock();
+}
+
+void grid_node::kill(const std::string& task_name)
+{
+	std::string request;
+	request = std::string("<kill \"") + task_name + "\">";
+	boost::uint32_t size = request.size();
+	
+	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), size));
+}
+
+bool grid_node::parse_kill_reply(const std::string &reply)
+{
+	const boost::regex re_status("(?xs)(^<kill \\s+ \"([\\w\\d_]+)\" \\s+ status \\s+ \"(.+)\">$)");
+	boost::smatch match_res;
+
+	if( boost::regex_match(reply, match_res, re_status) )
+	{
+		std::string name = match_res[2], status = match_res[3];
+		if (status == "ok")
+		{
+			std::cout << "task \"" << name << "\" killed" << std::endl;
+		}
+		else
+		{
+			std::cout << "can't kill task \"" << name << "\": " << status << std::endl;
+		}
+		return true;
+	}
+	return false;
 }

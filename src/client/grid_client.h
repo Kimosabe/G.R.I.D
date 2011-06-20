@@ -34,6 +34,7 @@ public:
 	void deny_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege);
 	void request_all_processes();
 	void show_all_processes();
+	void kill(size_t process_num);
 
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 
@@ -56,6 +57,8 @@ private:
 	std::string username;
 	boost::asio::io_service::work work_;
 	long user_token;
+	// задачи на всех нодах
+	Kimo::TaskList m_tasks;
 };
 
 #endif //GRID_CLIENT_H_

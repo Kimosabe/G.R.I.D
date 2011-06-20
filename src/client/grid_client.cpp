@@ -305,18 +305,40 @@ void grid_client::request_all_processes()
 
 void grid_client::show_all_processes()
 {
-	Kimo::TaskList tasks;
 	Kimo::TaskList::iterator jtr;
 
 	Nodes::iterator itr = nodes_.begin();
 	for (size_t i = 0; itr != nodes_.end(); ++itr, ++i)
 	{
-		(*itr)->get_tasks(tasks);
+		(*itr)->get_tasks(m_tasks);
 	}
 
-	jtr = tasks.begin();
+	jtr = m_tasks.begin();
 	std::cout << "#\tnode id\tname\towner\tstatus\t\tstart at" << std::endl;
-	for (size_t i = 0; jtr != tasks.end(); ++jtr, ++i)
+	for (size_t i = 0; jtr != m_tasks.end(); ++jtr, ++i)
 		std::cout << i << "\t" << jtr->node_id << "\t" << jtr->name << "\t"
 			<< jtr->owner << "\t" << jtr->status << "\t" << jtr->start_date << std::endl;
+}
+
+void grid_client::kill(size_t process_num)
+{
+	if (!m_tasks.size())
+	{
+		std::cout << "no tasks known, make request first." << std::endl;
+		return;
+	}
+
+	if (process_num >= m_tasks.size())
+	{
+		std::cout << "no such task." << std::endl;
+		return;
+	}
+
+	if (m_tasks[process_num].node_id >= nodes_.size())
+	{
+		std::cout << "ERROR: wrong node_id in task description." << std::endl;
+		return;
+	}
+
+	nodes_[m_tasks[process_num].node_id]->kill(m_tasks[process_num].name);
 }

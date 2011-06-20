@@ -59,6 +59,7 @@ public:
 	void setToken(long token);
 	void all_tasks_request(size_t node_id);
 	void get_tasks(Kimo::TaskList& tasks);
+	void kill(const std::string& task_name);
 
     void stop();
 	void start();
@@ -105,6 +106,7 @@ private:
 	bool parse_token_request(const std::string &request);
 	bool parse_token_expired_reply(const std::string &reply);
 	bool parse_show_all_processes_reply(const std::string &reply);
+	bool parse_kill_reply(const std::string &reply);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;

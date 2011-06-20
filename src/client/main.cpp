@@ -281,6 +281,21 @@ int main(int argc, char *argv[])
 				gc.show_all_processes();
 			}
 			//***********************************************************************
+			else if( user_command == menu[KILL_PROCESS].command )
+			{
+				size_t process_num;
+				try
+				{
+					process_num = boost::lexical_cast<size_t>(task_name);
+					gc.kill(process_num);
+				}
+				catch(boost::bad_lexical_cast& /*ex*/)
+				{
+					std::cout << "bad process_num." << std::endl;
+					std::cout << menu[KILL_PROCESS].definition << std::endl;
+				}
+			}
+			//***********************************************************************
 			else
 			{
 				for(menu_t::const_iterator i = menu.begin(); i != menu.end(); ++i)
