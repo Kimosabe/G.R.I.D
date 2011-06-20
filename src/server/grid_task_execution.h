@@ -6,19 +6,23 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
+#include <boost/enable_shared_from_this.hpp>
 
 /**
  * данные о выполнении задания
  */
 
-class grid_task_execution{
+typedef boost::shared_ptr<boost::thread> thread_ptr;
+
+class grid_task_execution : public boost::enable_shared_from_this<grid_task_execution> {
 protected:
 	boost::posix_time::ptime start_time_, finish_time_;
 	grid_task task_;
 	std::string username_;
 
 	pid_t child_process_;
-	boost::thread async_thread_;
+	//boost::thread async_thread_;
+	thread_ptr async_thread_;
 
 	void start();
 

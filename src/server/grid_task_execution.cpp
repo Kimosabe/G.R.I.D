@@ -76,12 +76,12 @@ const std::string& grid_task_execution::username() const
 
 void  grid_task_execution::interrupt()
 {
-	async_thread_.interrupt();
+	async_thread_->interrupt();
 }
 
 void grid_task_execution::async_start()
 {
-	async_thread_ = boost::thread(boost::bind(&grid_task_execution::start, this));
+	async_thread_ = thread_ptr(new boost::thread(boost::bind(&grid_task_execution::start, shared_from_this())));
 }
 
 void grid_task_execution::start()
