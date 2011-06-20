@@ -4,6 +4,7 @@
 #include "grid_client.h"
 #include "grid_task.h"
 #include "simple_exception.hpp"
+#include "task_list.h"
 
 grid_client::grid_client()
 : io_serv_(), nodes_(), thread_pool_(), task_table_(), tasks_(), work_(io_serv_)
@@ -290,4 +291,32 @@ void grid_client::io_service_run()
 	{
 		std::cout << "O_o: " << ex.what() << std::endl;
 	}
+}
+
+void grid_client::request_all_processes()
+{
+	Nodes::iterator itr = nodes_.begin();
+	for (size_t i = 0; itr != nodes_.end(); ++itr, ++i)
+	{
+		if ((*itr)->is_active())
+			(*itr)->all_tasks_request(i);
+	}
+}
+
+void grid_client::show_all_processes()
+{
+	Kimo::TaskList tasks;
+	Kimo::TaskList::iterator jtr;
+
+	Nodes::iterator itr = nodes_.begin();
+	for (size_t i = 0; itr != nodes_.end(); ++itr, ++i)
+	{
+		(*itr)->get_tasks(tasks);
+	}
+
+	jtr = tasks.begin();
+	std::cout << "#\tnode id\tname\towner\tstatus\t\tstart at" << std::endl;
+	for (size_t i = 0; jtr != tasks.end(); ++jtr, ++i)
+		std::cout << i << "\t" << jtr->node_id << "\t" << jtr->name << "\t"
+			<< jtr->owner << "\t" << jtr->status << "\t" << jtr->start_date << std::endl;
 }

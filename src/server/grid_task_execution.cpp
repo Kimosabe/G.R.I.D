@@ -21,7 +21,7 @@ inline bool grid_task_execution::finished() const
 	return !finish_time_.is_not_a_date_time();
 }
 
-inline const boost::posix_time::ptime& grid_task_execution::start_time() const
+const boost::posix_time::ptime& grid_task_execution::start_time() const
 {
 	return start_time_;
 }

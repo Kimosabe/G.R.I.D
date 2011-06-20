@@ -32,6 +32,8 @@ public:
 	void remove_user(const std::string& name);
 	void allow_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege);
 	void deny_privilege(const std::string& name, const Kimo::ACL::ACL_t privilege);
+	void request_all_processes();
+	void show_all_processes();
 
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 

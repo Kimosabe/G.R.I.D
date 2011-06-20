@@ -61,6 +61,7 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				AdditionalOptions="/NODEFAULTLIB:LIBCMTD.lib"
 				AdditionalDependencies="cryptlibd.lib"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="&quot;..\..\lib&quot;;&quot;C:\Users\Kimo\Downloads\boost_1_45_0\stage\lib&quot;"
@@ -211,6 +212,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\shared\task_list.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\client\task_status_record.cpp"
 				>
 			</File>
@@ -253,11 +258,19 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\shared\lockable_vector.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\client\menu.h"
 				>
 			</File>
 			<File
 				RelativePath="..\..\src\shared\simple_exception.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\shared\task_list.h"
 				>
 			</File>
 			<File

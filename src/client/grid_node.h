@@ -13,6 +13,7 @@
 #include <boost/asio.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/noncopyable.hpp>
+#include <boost/thread/locks.hpp>
 #include <vector>
 #include <string>
 #include <stack>
@@ -21,6 +22,7 @@
 #include "lockable_vector.hpp"
 #include "task_status_record.h"
 #include "acl.h"
+#include "task_list.h"
 
 class grid_task;
 
@@ -55,6 +57,8 @@ public:
 	void apply_task(const grid_task &task);
 	long getToken();
 	void setToken(long token);
+	void all_tasks_request(size_t node_id);
+	void get_tasks(Kimo::TaskList& tasks);
 
     void stop();
 	void start();
@@ -83,6 +87,8 @@ private:
 	char buf[maxsize];
 
 	long m_token;
+	boost::mutex m_tasks_mutex;
+	Kimo::TaskList m_tasks;
 
 	void handle_connect(const boost::system::error_code& err,
 		boost::asio::ip::tcp::resolver::iterator endpoint_iterator,
@@ -98,6 +104,7 @@ private:
 	bool parse_users_managment_request(const std::string &request);
 	bool parse_token_request(const std::string &request);
 	bool parse_token_expired_reply(const std::string &reply);
+	bool parse_show_all_processes_reply(const std::string &reply);
 };
 
 typedef boost::shared_ptr<grid_node> node_ptr;

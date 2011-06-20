@@ -14,6 +14,7 @@
 #include "users_manager.h"
 #include "transaction.h"
 #include "memory.h"
+#include "task_list.h"
 
 using Kimo::ACL;
 
@@ -113,6 +114,8 @@ void session::handle_read_body(const boost::system::error_code& error)
 		else if ( user_manage_request(request) )
 			;
 		else if ( privilege_manage_request(request) )
+			;
+		else if (show_all_processes_request(request) )
 			;
 		// пробуем что-нибудь десериализовать
 		else
@@ -462,10 +465,16 @@ bool session::transaction_end(const std::string &request)
 		std::string name = match_res[2];
 		std::string msg;
 
-		if (get_parent_server()->get_parent_node()->get_users_manager().deserialize(sbuffer_) < 0)
-			msg = std::string("<transaction \"") + name + std::string("\" status \"bad\">");
-		else
-			msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">");
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+		if (name == "users")
+		{
+			if (um.deserialize(sbuffer_) < 0)
+				msg = std::string("<transaction \"") + name + std::string("\" status \"bad\">");
+			else
+				msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">");
+
+			m_user_token = um.getToken(m_user_id);
+		}
 
 		length = msg.size();
 		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
@@ -698,5 +707,63 @@ bool session::token_expired()
 		boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
 		return true;
 	}
+	return false;
+}
+
+bool session::show_all_processes_request(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<tasks \\s+ show_all \\s+ ([\\d]+)>$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+		std::string reply = std::string("<tasks show_all status \"");
+
+		if (um.isAllowed(m_user_id, Kimo::ACL::PRIV_PROCRD))
+		{
+			size_t node_id = boost::lexical_cast<size_t>(match_res[2]);
+			Kimo::Task task;
+			Kimo::TaskList tasks;
+			std::stringstream ss;
+			lockable_vector<grid_task_execution_ptr>::iterator itr;
+			itr = task_executions_.begin();
+			for (; itr != task_executions_.end(); ++itr)
+			{
+				task.node_id = node_id;
+				task.name = (*itr)->task().name();
+				task.owner = (*itr)->username();
+				if ((*itr)->active())
+				{
+					task.status = std::string("progress: ") + boost::lexical_cast<std::string>((*itr)->progress());
+				}
+				else if ((*itr)->finished())
+					task.status = std::string("finished");
+				else
+					task.status = std::string("starting");
+				task.start_date = boost::posix_time::to_simple_string((*itr)->start_time());
+
+				tasks.push_back(task);
+			}
+
+			msgpack::sbuffer sbuffer;
+			msgpack::pack(sbuffer, tasks);
+
+			reply += "ok\" data \"";
+			reply.append(sbuffer.data(), sbuffer.size());
+			reply += std::string("\">");
+		}
+		else
+		{
+			reply += "access denied\" data \"\">";
+		}
+
+		boost::uint32_t size = reply.size();
+		boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+		boost::asio::write(socket_, boost::asio::buffer(reply.data(), size));
+
+		return true;
+	}
+
 	return false;
 }

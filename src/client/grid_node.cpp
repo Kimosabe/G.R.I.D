@@ -79,11 +79,6 @@ grid_node::~grid_node()
 
 void grid_node::start()
 {
-	std::string message = std::string("<token \"") + boost::lexical_cast<std::string>(m_token) + std::string("\">");
-	uint32_t msg_size = message.size();
-	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
-	boost::asio::write(socket_, boost::asio::buffer(message.data(), message.size()));
-
 	async_read_header();
 }
 
@@ -130,7 +125,7 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 	if( !error )
 	{
 		std::string request(data_, msg_size_);
-		std::cout << "<request> " << request << " </request>" << std::endl;
+		//std::cout << "<request> " << request << " </request>" << std::endl;
 
 		if( file_tr_.recieve_file(request, socket_) )
 			std::cout << "file accepted" << std::endl;
@@ -141,6 +136,8 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 		else if ( parse_users_managment_request(request) )
 			;
 		else if ( parse_token_expired_reply(request) )
+			;
+		else if ( parse_show_all_processes_reply(request) )
 			;
 		else
 			std::cout << request << std::endl;
@@ -424,7 +421,7 @@ bool grid_node::login(std::string& login, std::string& password)
 	{
 		//std::istream ss(&streambuf_);
 		std::string request; request.append(buffer.get(), length);
-		std::cout << "<request> " << request << " </request>" << std::endl;
+		//std::cout << "<request> " << request << " </request>" << std::endl;
 
 		//if( !ss.eof() )
 		{
@@ -447,7 +444,7 @@ bool grid_node::login(std::string& login, std::string& password)
 					buffer[length] = '\0';
 					boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
 					request = buffer.get();
-					std::cout << "<request> " << request << " </request>" << std::endl;
+					//std::cout << "<request> " << request << " </request>" << std::endl;
 					if (!grid_node::parse_token_request(request))
 					{
 						std::cerr << "wrong token" << std::endl;
@@ -607,4 +604,62 @@ long grid_node::getToken()
 void grid_node::setToken(long token)
 {
 	m_token = token;
+
+	std::string message = std::string("<token \"") + boost::lexical_cast<std::string>(m_token) + std::string("\">");
+	uint32_t msg_size = message.size();
+	boost::asio::write(socket_, boost::asio::buffer(&msg_size, sizeof(msg_size)));
+	boost::asio::write(socket_, boost::asio::buffer(message.data(), message.size()));
+}
+
+void grid_node::all_tasks_request(size_t node_id)
+{
+	std::string request;
+	request = std::string("<tasks show_all ") + boost::lexical_cast<std::string>(node_id) + std::string(">");
+	boost::uint32_t size = request.size();
+	
+	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), size));
+}
+
+bool grid_node::parse_show_all_processes_reply(const std::string &reply)
+{
+	const boost::regex re_status("(?xs)(^<tasks \\s+ show_all \\s+ status \\s+ \"(.+)\" \\s+ data \\s+ \"(.*)\">$)");
+	boost::smatch match_res;
+
+	if( boost::regex_match(reply, match_res, re_status) )
+	{
+		std::string status = match_res[2], data = match_res[3];
+		if (status == "ok")
+		{
+			if (data.empty())
+				std::cout << "Warning: process data is empty." << std::endl;
+			else
+			{
+				msgpack::unpacked unpacked;
+				msgpack::unpack(&unpacked, data.data(), data.size());
+				m_tasks_mutex.lock();
+				m_tasks.clear();
+				unpacked.get().convert(&m_tasks);
+				m_tasks_mutex.unlock();
+
+				// o_O
+				std::cout << address_ << ":" << port_ << ": tasks received" << std::endl;
+			}
+		}
+		else
+		{
+			std::cout << address_ << ":" << port_ << ": can't get all processes data: " << status << std::endl;
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void grid_node::get_tasks(Kimo::TaskList &tasks)
+{
+	m_tasks_mutex.lock();
+	tasks.insert(tasks.end(), m_tasks.begin(), m_tasks.end());
+	m_tasks_mutex.unlock();
 }

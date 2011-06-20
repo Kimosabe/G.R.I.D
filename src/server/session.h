@@ -54,6 +54,7 @@ private:
 	bool user_manage_request(const std::string &request);
 	bool privilege_manage_request(const std::string &request);
 	bool token_request(const std::string &request);
+	bool show_all_processes_request(const std::string &request);
 
 	bool token_expired();
 

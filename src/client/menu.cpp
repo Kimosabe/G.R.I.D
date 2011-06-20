@@ -14,6 +14,9 @@ menu_t get_menu()
 	menu[REMOVE_USER] = menu_item("remove_user", "remove user from grid");
 	menu[ALLOW_PRIVILEGE] = menu_item("allow_privilege", "allow privilege to user");
 	menu[DENY_PRIVILEGE] = menu_item("deny_privilege", "deny privilege to user");
+	menu[REQUEST_ALL_PROCESSES] = menu_item("request_all_processes", "request all processes info on every node");
+	menu[SHOW_ALL_PROCESSES] = menu_item("show_all_processes", "shows all processes on every node");
+	menu[KILL_PROCESS] = menu_item("kill", "kill <process_num> - kills a process");
 
 	return menu;
 }

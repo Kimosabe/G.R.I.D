@@ -271,6 +271,16 @@ int main(int argc, char *argv[])
 					gc.deny_privilege(login, privilege);
 			}
 			//***********************************************************************
+			else if( user_command == menu[REQUEST_ALL_PROCESSES].command )
+			{
+				gc.request_all_processes();
+			}
+			//***********************************************************************
+			else if( user_command == menu[SHOW_ALL_PROCESSES].command )
+			{
+				gc.show_all_processes();
+			}
+			//***********************************************************************
 			else
 			{
 				for(menu_t::const_iterator i = menu.begin(); i != menu.end(); ++i)
