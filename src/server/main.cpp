@@ -48,6 +48,17 @@ int main(int argc, char* argv[])
 
 		return 0;
 	}
+	catch(CryptoPP::Exception& ex)
+	{
+		switch(ex.GetErrorType())
+		{
+		case 4:
+			std::cout << "Can't decrypt data." << std::endl;
+			break;
+		default:
+			std::cout << "Unhandled exception!! " << ex.what() << std::endl;
+		}
+	}
 	catch (std::exception& e)
 	{
 		std::cerr << "Exception: " << e.what() << "\n";
