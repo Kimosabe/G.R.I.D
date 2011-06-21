@@ -355,3 +355,21 @@ void grid_client::kill(const std::string &task_name)
 		}
 	}
 }
+
+void grid_client::get_acl()
+{
+	if (nodes_.size())
+	{
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				(*itr)->get_acl();
+				return;
+			}
+		}
+	}
+
+	std::cerr << "no nodes are active" << std::endl;
+}

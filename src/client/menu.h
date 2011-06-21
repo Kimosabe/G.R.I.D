@@ -21,6 +21,7 @@ typedef enum {
 	SHOW_ALL_PROCESSES,
 	KILL_PROCESS,
 	KILL_TASK,
+	GET_ACL,
 
 } command_meaning;
 

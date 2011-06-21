@@ -121,7 +121,7 @@ void session::handle_read_body(const boost::system::error_code& error)
 			;
 		else if (timestamp_request(request) )
 			;
-		else if (get_users_request(request) )
+		else if (get_request(request) )
 			;
 		// пробуем что-нибудь десериализовать
 		else
@@ -789,7 +789,7 @@ bool session::timestamp_request(const std::string &request)
 	return false;
 }
 
-bool session::get_users_request(const std::string &request)
+bool session::get_request(const std::string &request)
 {
 	const boost::regex re("(?xs)(^<get \\s+ ([\\d\\w\\-_]+)>$)");
 
@@ -803,6 +803,13 @@ bool session::get_users_request(const std::string &request)
 			msgpack::sbuffer sbuffer;
 			um.serialize(sbuffer);
 			encrypt(buffer, sbuffer.data(), sbuffer.size(), um.get_passwd());
+		}
+		else if (what == "acl")
+		{
+			Kimo::ACL::ACL_t acl = um.getACL(m_user_id);
+			buffer = "<acl ";
+			buffer += boost::lexical_cast<std::string>(acl);
+			buffer += ">";
 		}
 		else
 			return false;

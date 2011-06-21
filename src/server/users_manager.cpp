@@ -402,3 +402,12 @@ std::string UsersManager::getLogin(int id)
 
 	return m_users_storage.users[id].login;
 }
+
+Kimo::ACL::ACL_t UsersManager::getACL(int id)
+{
+	boost::lock_guard<boost::mutex> lock(m_mutex);
+	if (id < 0 || m_users_storage.users.size() <= id)
+		return 0;
+
+	return m_users_storage.users[id].acl.acl();
+}

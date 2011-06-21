@@ -60,6 +60,7 @@ public:
 	time_t getTokenTimestamp(int user_id);
 	time_t getLastModified();
 	void setLastModified(time_t timestamp);
+	ACL::ACL_t getACL(int id);
 	boost::mutex& mutex();
 
     // Debug

@@ -141,6 +141,8 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 			;
 		else if ( parse_kill_reply(request) )
 			;
+		else if ( parse_acl_reply(request) )
+			;
 		else
 			std::cout << request << std::endl;
 
@@ -706,4 +708,46 @@ bool grid_node::parse_kill_reply(const std::string &reply)
 		return true;
 	}
 	return false;
+}
+
+// вспомогательная функция для вывода доступных привилегий на экран
+static void acl_print(Kimo::ACL::ACL_t acl, const char* spriv, Kimo::ACL::PRIVILEGE priv)
+{
+	std::cout << spriv << " is ";
+	if (acl & priv)
+		std::cout << "allowed" << std::endl;
+	else
+		std::cout << "denied" << std::endl;
+}
+
+bool grid_node::parse_acl_reply(const std::string &reply)
+{
+	const boost::regex re_status("(?xs)(^<acl \\s+ (.+)>$)");
+	boost::smatch match_res;
+
+	if( boost::regex_match(reply, match_res, re_status) )
+	{
+		std::string str_acl = match_res[2];
+		Kimo::ACL::ACL_t acl = boost::lexical_cast<Kimo::ACL::ACL_t>(str_acl);
+
+		acl_print(acl, "login", Kimo::ACL::PRIV_LOGIN);
+		acl_print(acl, "process execution", Kimo::ACL::PRIV_PROCEXEC);
+		acl_print(acl, "reading info about all processes", Kimo::ACL::PRIV_PROCRD);
+		acl_print(acl, "killing any process", Kimo::ACL::PRIV_PROCTERM);
+		acl_print(acl, "reading info about all users", Kimo::ACL::PRIV_USERRD);
+		acl_print(acl, "editing any user profile", Kimo::ACL::PRIV_USERWR);
+
+		return true;
+	}
+	return false;
+}
+
+void grid_node::get_acl()
+{
+	std::string request;
+	request = std::string("<get acl>");
+	boost::uint32_t size = request.size();
+	
+	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), size));
 }

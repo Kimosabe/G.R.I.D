@@ -308,6 +308,11 @@ int main(int argc, char *argv[])
 					gc.kill(task_name);
 			}
 			//***********************************************************************
+			else if( user_command == menu[GET_ACL].command )
+			{
+				gc.get_acl();
+			}
+			//***********************************************************************
 			else
 			{
 				for(menu_t::const_iterator i = menu.begin(); i != menu.end(); ++i)
