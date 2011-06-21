@@ -26,7 +26,7 @@ public:
 	typedef lockable_vector<grid_task_execution_ptr> task_executions_t;
 
 	grid_node(const short port, const addresses_t &addresses, const ports_t &ports,
-		const std::string& users_path);
+		const std::string& users_path, const std::string& passwd);
 	virtual ~grid_node();
 
 	void run();

@@ -54,7 +54,7 @@ namespace Kimo
 		return get_response();
 	}
 
-	bool Transaction::transfer(char* data, size_t size)
+	bool Transaction::transfer(const char* data, size_t size)
 	{
 		if (!m_socket.is_open())
 			return true;

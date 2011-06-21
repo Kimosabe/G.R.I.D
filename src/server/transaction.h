@@ -18,7 +18,7 @@ public:
 	void set_name(const char* name);
 	bool connect(const std::string& address, short port);
 	bool begin(time_t timestamp);
-	bool transfer(char* data, size_t size);
+	bool transfer(const char* data, size_t size);
 	bool end();
 
 private:

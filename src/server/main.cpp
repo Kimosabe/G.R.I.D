@@ -40,8 +40,10 @@ int main(int argc, char* argv[])
 
 		os = config["os"];
 
-		std::string users_path("users.dat");
-		grid_node node(boost::lexical_cast<short>(argv[1]), addresses, ports, users_path);
+		std::string users_path("users.dat"), passwd;
+		std::cout << "password: ";
+		std::getline(std::cin, passwd);
+		grid_node node(boost::lexical_cast<short>(argv[1]), addresses, ports, users_path, passwd);
 		node.run();
 
 		return 0;

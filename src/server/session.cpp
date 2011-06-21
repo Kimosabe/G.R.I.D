@@ -15,6 +15,7 @@
 #include "transaction.h"
 #include "memory.h"
 #include "task_list.h"
+#include "kimo_crypt.h"
 
 using Kimo::ACL;
 
@@ -476,6 +477,10 @@ bool session::transaction_end(const std::string &request)
 		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
 		if (name == "users")
 		{
+			std::string data;
+			decrypt(data, sbuffer_.data(), sbuffer_.size(), um.get_passwd());
+			sbuffer_.clear();
+			sbuffer_.write(data.data(), data.size());
 			if (um.deserialize(sbuffer_) < 0)
 				msg = std::string("<transaction \"") + name + std::string("\" status \"bad\">");
 			else
@@ -483,6 +488,8 @@ bool session::transaction_end(const std::string &request)
 
 			m_user_token = um.getToken(m_user_id);
 		}
+		else
+			msg = "o_O"; // O_o
 
 		length = msg.size();
 		boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
@@ -556,13 +563,15 @@ void session::sync_data(const std::string& transaction_name, time_t timestamp)
 	UsersManager& users_manager = get_parent_server()->get_parent_node()->get_users_manager();
 	msgpack::sbuffer sbuffer;
 	users_manager.serialize(sbuffer);
+	std::string data;
+	encrypt(data, sbuffer.data(), sbuffer.size(), users_manager.get_passwd());
 
 	// Передаем данные
 	for (size_t i = 0; i < size; ++i)
 	{
 		if (bad_addresses.count(i) == 0)
 		{
-			if (transactions[i].transfer((char*)sbuffer.data(), sbuffer.size()))
+			if (transactions[i].transfer(data.data(), data.size()))
 				bad_addresses.insert(i);
 		}
 	}

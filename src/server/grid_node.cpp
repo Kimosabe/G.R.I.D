@@ -1,8 +1,8 @@
 #include "grid_node.h"
 
 grid_node::grid_node(const short port, const addresses_t &addresses, const ports_t &ports,
-					 const std::string& users_path)
-: io_service_(), task_executions_(), addresses_(addresses), ports_(ports), users_manager_(users_path)
+					 const std::string& users_path, const std::string& passwd)
+: io_service_(), task_executions_(), addresses_(addresses), ports_(ports), users_manager_(users_path, passwd)
 {
 	server_ = server_ptr(new server(io_service_, port, task_executions_, this));
 }

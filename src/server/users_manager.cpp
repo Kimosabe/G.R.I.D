@@ -4,18 +4,19 @@
 #include "users_manager.h"
 #include <CryptoPP/hex.h>
 #include <boost/thread/locks.hpp>
+#include "kimo_crypt.h"
 
 using std::cout;
 using std::endl;
 
-UsersManager::UsersManager(const String& users_path)
+UsersManager::UsersManager(const String& users_path, const std::string& passwd)
 : m_users_path(users_path), m_engine((boost::uint32_t)time(NULL)), m_uniform(0, 0x7FFFFFFF),
-  m_token_lifetime(3600)
+  m_token_lifetime(3600), m_passwd(passwd)
 {
 	if (loadUsers() < 0 || m_users_storage.users.empty())
 	{
 		String root("root");
-		String password("vv007");
+		String password("");
 		hash(password, password);
 		
 		int id = addUser(root, password, true);
@@ -165,24 +166,12 @@ void UsersManager::printUsers(std::ostream& out)
 
 int UsersManager::loadUsers()
 {
-    Fstream file(m_users_path.c_str(), Fstream::in | Fstream::binary);
-
 	msgpack::sbuffer buffer;
-	char c;
-	bool data_was_read = false;
-	file.read(&c, 1);
-	while(file)
-	{
-		data_was_read = true;
-		buffer.write(&c, 1);
-		file.read(&c, 1);
-	}
-
-	// XXX: ужасное решение с присваиванием в каждом витке цикла
-	if (data_was_read)
-		return deserialize(buffer);
-
-    return -1;
+	std::string temp;
+	if (decrypt_from_file(temp, m_users_path.c_str(), m_passwd) < 0)
+		return -1;
+	buffer.write(temp.data(), temp.size());
+	return deserialize(buffer);
 }
 
 int UsersManager::saveUsers()
@@ -191,8 +180,7 @@ int UsersManager::saveUsers()
 	if (serialize(buffer) < 0)
 		return -1;
 
-	Fstream file(m_users_path.c_str(), Fstream::out | Fstream::binary | Fstream::trunc);
-	file.write(buffer.data(), buffer.size());
+	encrypt_to_file(m_users_path.c_str(), buffer.data(), buffer.size(), m_passwd);
 
     return 0;
 }

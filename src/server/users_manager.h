@@ -28,7 +28,7 @@ public:
      *  
      *  \param users_path Путь к файлу с данными по пользователям.
      */
-    UsersManager(const String& users_path);
+	UsersManager(const String& users_path, const std::string& passwd);
 
     ~UsersManager();
     
@@ -53,6 +53,7 @@ public:
 
 	int serialize(msgpack::sbuffer& buffer);
 	int deserialize(msgpack::sbuffer& buffer);
+	const std::string& get_passwd(){return m_passwd;}
 
 	time_t getTokenLifetime();
 	void setTokenLifetime(time_t lifetime);
@@ -114,6 +115,8 @@ private:
 	time_t m_token_lifetime;
 	//! мьютекс о_О
 	boost::mutex m_mutex;
+	//! пароль для шифрования файла
+	std::string m_passwd;
 };
 
 #else
