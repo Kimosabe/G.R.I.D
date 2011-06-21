@@ -59,6 +59,7 @@ public:
 	void setTokenLifetime(time_t lifetime);
 	time_t getTokenTimestamp(int user_id);
 	time_t getLastModified();
+	void setLastModified(time_t timestamp);
 	boost::mutex& mutex();
 
     // Debug

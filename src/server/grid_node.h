@@ -31,10 +31,13 @@ public:
 
 	void run();
 	void stop();
+	void sync_data(const std::string& transaction_name, time_t timestamp);
+
 	UsersManager& get_users_manager();
 	addresses_t& get_addresses();
 	ports_t& get_ports();
 private:
+	void check_timestamps();
 	server_ptr server_;
 	task_executions_t task_executions_;
 	boost::asio::io_service io_service_;

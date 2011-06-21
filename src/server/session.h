@@ -57,6 +57,8 @@ private:
 	bool token_request(const std::string &request);
 	bool show_all_processes_request(const std::string &request);
 	bool kill_request(const std::string &request);
+	bool get_users_request(const std::string &request);
+	bool timestamp_request(const std::string &request);
 
 	bool token_expired();
 

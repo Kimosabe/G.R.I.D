@@ -288,7 +288,7 @@ int UsersManager::deserialize(msgpack::sbuffer& buffer)
 
 		boost::lock_guard<boost::mutex> lock(m_mutex);
 		m_users_storage = users;
-		m_users_storage.m_last_modified = time(NULL);
+		//m_users_storage.m_last_modified = time(NULL);
 	}
 	catch(msgpack::unpack_error& e)
 	{
@@ -375,6 +375,11 @@ time_t UsersManager::getLastModified()
 {
 	boost::lock_guard<boost::mutex> lock(m_mutex);
 	return m_users_storage.m_last_modified;
+}
+
+void UsersManager::setLastModified(time_t timestamp)
+{
+	m_users_storage.m_last_modified = timestamp;
 }
 
 int UsersManager::getId(long token)

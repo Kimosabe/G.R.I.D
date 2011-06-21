@@ -12,7 +12,6 @@
 #include "grid_task_execution.h"
 #include "acl.h"
 #include "users_manager.h"
-#include "transaction.h"
 #include "memory.h"
 #include "task_list.h"
 #include "kimo_crypt.h"
@@ -83,7 +82,7 @@ void session::handle_read_body(const boost::system::error_code& error)
 	if (!error)
 	{
 		std::string request(data_, msg_size_);
-		std::cout << "<request> " << request << " </request>" << std::endl;
+		//std::cout << "<request> " << request << " </request>" << std::endl;
 
 		// запросы на получение / отправку файлов
 		std::string local_name, remote_name;
@@ -119,6 +118,10 @@ void session::handle_read_body(const boost::system::error_code& error)
 		else if ( show_all_processes_request(request) )
 			;
 		else if ( kill_request(request) )
+			;
+		else if (timestamp_request(request) )
+			;
+		else if (get_users_request(request) )
 			;
 		// пробуем что-нибудь десериализовать
 		else
@@ -484,7 +487,9 @@ bool session::transaction_end(const std::string &request)
 			if (um.deserialize(sbuffer_) < 0)
 				msg = std::string("<transaction \"") + name + std::string("\" status \"bad\">");
 			else
+			{
 				msg = std::string("<transaction \"") + name + std::string("\" status \"ok\">");
+			}
 
 			m_user_token = um.getToken(m_user_id);
 		}
@@ -509,87 +514,7 @@ server* session::get_parent_server()
 
 void session::sync_data(const std::string& transaction_name, time_t timestamp)
 {
-	using std::set;
-	using std::stack;
-
-	grid_node::addresses_t& addresses = get_parent_server()->get_parent_node()->get_addresses();
-	grid_node::ports_t& ports = get_parent_server()->get_parent_node()->get_ports();
-
-	typedef std::vector<Kimo::Transaction> transactions_t;
-	//transactions_t transactions;
-	//transactions.resize(addresses.size());
-
-	size_t size = addresses.size();
-	Kimo::Transaction* transactions = new Kimo::Transaction[size];
-	
-	std::set<size_t> bad_addresses;
-	std::stack<int> port_stack;
-
-	bool connected;
-	short port;
-	//transactions_t::iterator itr = transactions.begin();
-	// Подключение ко всем нодам
-	for (size_t i = 0; i < size; ++i)
-	{
-		connected = false;
-		transactions[i].set_name(transaction_name.c_str());
-		port_stack = ports[i];
-		while(!port_stack.empty())
-		{
-			port = port_stack.top();
-			port_stack.pop();
-			if (!transactions[i].connect(addresses[i], port))
-			{
-				connected = true;
-				break;
-			}
-		}
-
-		if (!connected)
-			bad_addresses.insert(i);
-	}
-
-	// Начало транзакции со всеми нодами, к которым смогли подключиться
-	for (size_t i = 0; i < size; ++i)
-	{
-		if (bad_addresses.count(i) == 0)
-		{
-			if (transactions[i].begin(timestamp))
-				bad_addresses.insert(i);
-		}
-	}
-
-	// Формируем данные для транзакции
-	UsersManager& users_manager = get_parent_server()->get_parent_node()->get_users_manager();
-	msgpack::sbuffer sbuffer;
-	users_manager.serialize(sbuffer);
-	std::string data;
-	encrypt(data, sbuffer.data(), sbuffer.size(), users_manager.get_passwd());
-
-	// Передаем данные
-	for (size_t i = 0; i < size; ++i)
-	{
-		if (bad_addresses.count(i) == 0)
-		{
-			if (transactions[i].transfer(data.data(), data.size()))
-				bad_addresses.insert(i);
-		}
-	}
-
-	// Завершаем транзакцию
-	for (size_t i = 0; i < size; ++i)
-	{
-		if (bad_addresses.count(i) == 0)
-		{
-			if (transactions[i].end())
-				bad_addresses.insert(i);
-		}
-	}
-
-	size_t complited_transactions = size - bad_addresses.size();
-	std::cerr << "complited: " << complited_transactions << " / " << size << std::endl;
-
-	delete [] transactions;
+	get_parent_server()->get_parent_node()->sync_data(transaction_name, timestamp);
 }
 
 bool session::user_manage_request(const std::string &request)
@@ -834,6 +759,57 @@ bool session::kill_request(const std::string &request)
 		boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
 		boost::asio::write(socket_, boost::asio::buffer(reply.data(), size));
 
+		return true;
+	}
+	return false;
+}
+
+bool session::timestamp_request(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<timestamp \\s+ ([\\w\\d\\-_]+)>$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+		std::string what = match_res[2];
+		time_t tmstmp;
+		if (what == "users")
+		{
+			tmstmp = um.getLastModified();
+		}
+		else
+			return false;
+
+		boost::uint32_t size = sizeof(tmstmp);
+		boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+		boost::asio::write(socket_, boost::asio::buffer(&tmstmp, size));
+		return true;
+	}
+	return false;
+}
+
+bool session::get_users_request(const std::string &request)
+{
+	const boost::regex re("(?xs)(^<get \\s+ ([\\d\\w\\-_]+)>$)");
+
+	boost::smatch match_res;
+	if( boost::regex_match(request, match_res, re) )
+	{
+		UsersManager& um = get_parent_server()->get_parent_node()->get_users_manager();
+		std::string what = match_res[2], buffer;
+		if (what == "users")
+		{
+			msgpack::sbuffer sbuffer;
+			um.serialize(sbuffer);
+			encrypt(buffer, sbuffer.data(), sbuffer.size(), um.get_passwd());
+		}
+		else
+			return false;
+
+		boost::uint32_t size = buffer.size();
+		boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+		boost::asio::write(socket_, boost::asio::buffer(buffer.data(), size));
 		return true;
 	}
 	return false;
