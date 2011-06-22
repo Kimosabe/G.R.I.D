@@ -258,9 +258,10 @@ void UsersManager::deny(int id, const ACL::PRIVILEGE privilege)
 		return;
 	
 	m_users_storage.users[id].acl.deny(privilege);
-	}
+	
 
 	m_users_storage.m_last_modified = time(NULL);
+	}
 
 	saveUsers();
 }
@@ -308,14 +309,18 @@ int UsersManager::deserialize(msgpack::sbuffer& buffer)
 
 long UsersManager::newToken(int id)
 {
+	{
 	boost::lock_guard<boost::mutex> lock(m_mutex);
-	if (id < 0 || m_users_storage.users.size() <= id)
+	if (id < 0 || m_users_storage.users.size() <= id || m_users_storage.users[id].id < 0)
 		return -1;
 
 	m_users_storage.users[id].token = m_uniform(m_engine);
 	m_users_storage.users[id].token_expire_time = time(NULL) + m_token_lifetime;
 
 	m_users_storage.m_last_modified = time(NULL);
+	}
+
+	saveUsers();
 
 	return m_users_storage.users[id].token;
 }
@@ -323,7 +328,7 @@ long UsersManager::newToken(int id)
 long UsersManager::getToken(int id)
 {
 	boost::lock_guard<boost::mutex> lock(m_mutex);
-	if (id < 0 || m_users_storage.users.size() <= id)
+	if (id < 0 || m_users_storage.users.size() <= id || m_users_storage.users[id].id < 0)
 		return -1;
 
 	if (m_users_storage.users[id].token_expire_time < time(NULL))
@@ -365,7 +370,7 @@ boost::mutex& UsersManager::mutex()
 time_t UsersManager::getTokenTimestamp(int user_id)
 {
 	boost::lock_guard<boost::mutex> lock(m_mutex);
-	if (user_id < 0 || m_users_storage.users.size() <= user_id)
+	if (user_id < 0 || m_users_storage.users.size() <= user_id || m_users_storage.users[user_id].id < 0)
 		return -1;
 
 	return m_users_storage.users[user_id].token_expire_time;
@@ -397,7 +402,7 @@ int UsersManager::getId(long token)
 std::string UsersManager::getLogin(int id)
 {
 	boost::lock_guard<boost::mutex> lock(m_mutex);
-	if (id < 0 || m_users_storage.users.size() <= id)
+	if (id < 0 || m_users_storage.users.size() <= id || m_users_storage.users[id].id < 0)
 		return 0;
 
 	return m_users_storage.users[id].login;
@@ -406,8 +411,33 @@ std::string UsersManager::getLogin(int id)
 Kimo::ACL::ACL_t UsersManager::getACL(int id)
 {
 	boost::lock_guard<boost::mutex> lock(m_mutex);
-	if (id < 0 || m_users_storage.users.size() <= id)
+	if (id < 0 || m_users_storage.users.size() <= id || m_users_storage.users[id].id < 0)
 		return 0;
 
 	return m_users_storage.users[id].acl.acl();
+}
+
+int UsersManager::change_passwd(int id, const std::string& password, bool password_already_hashed)
+{
+	{
+	boost::lock_guard<boost::mutex> lock(m_mutex);
+	if (id < 0 || m_users_storage.users.size() <= id || m_users_storage.users[id].id < 0)
+		return -1;
+
+	if (password_already_hashed)
+	{
+		m_users_storage.users[id].password_hash = password;
+	}
+	else
+	{
+		// Вычисляем хэш пароля
+		hash(password, m_users_storage.users[id].password_hash);
+	}
+
+	m_users_storage.m_last_modified = time(NULL);
+	}
+
+	saveUsers();
+
+	return 0;
 }

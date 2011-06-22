@@ -313,6 +313,32 @@ int main(int argc, char *argv[])
 				gc.get_acl();
 			}
 			//***********************************************************************
+			else if( user_command == menu[CHANGE_PASSWORD].command )
+			{
+				do
+				{
+					std::cout << "login: ";
+					std::getline(std::cin, login);	
+					incorrect_login = false;
+					if (login.empty())
+					{
+						std::cout << "login is empty" << std::endl;
+						incorrect_login = true;
+						continue;
+					}
+				} while (incorrect_login);
+				std::cout << "password: ";
+				std::getline(std::cin, password);
+
+				hasher.CalculateDigest((byte*)buffer, (const byte*)password.c_str(), password.size());
+				password.clear();
+				encoder.Attach( new CryptoPP::StringSink( password ) );
+				encoder.Put( (byte*)buffer, HASHER::DIGESTSIZE );
+				encoder.MessageEnd();
+
+				gc.change_password(login, password);
+			}
+			//***********************************************************************
 			else
 			{
 				for(menu_t::const_iterator i = menu.begin(); i != menu.end(); ++i)

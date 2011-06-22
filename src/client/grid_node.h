@@ -61,6 +61,7 @@ public:
 	void get_tasks(Kimo::TaskList& tasks);
 	void kill(const std::string& task_name);
 	void get_acl();
+	void change_password(const std::string& username, const std::string& passwd);
 
     void stop();
 	void start();

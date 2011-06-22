@@ -40,6 +40,7 @@ public:
     
     bool isValid(const String& login, const String& password, bool password_already_hashed = false);
     int addUser(const String& login, const String& password, bool password_already_hashed = false);
+	int change_passwd(int id, const std::string& password, bool password_already_hashed = false);
     int removeUser(int id);
     int getId(const String& login);
 	int getId(long token);

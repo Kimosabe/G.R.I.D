@@ -22,6 +22,7 @@ typedef enum {
 	KILL_PROCESS,
 	KILL_TASK,
 	GET_ACL,
+	CHANGE_PASSWORD,
 
 } command_meaning;
 

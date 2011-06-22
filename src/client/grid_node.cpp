@@ -421,16 +421,10 @@ bool grid_node::login(std::string& login, std::string& password)
 
 	//streambuf_.consume(streambuf_.size());
 	size_t bytes_transferred = boost::asio::read(socket_, boost::asio::buffer(&length, sizeof(length)));
-#if defined(_DEBUG) || defined(DEBUG)
-	std::cout << "received: " << bytes_transferred << " bytes for buffer" << std::endl;
-#endif
 
 	boost::scoped_array<char> buffer(new char[length+1]);
 	bytes_transferred = boost::asio::read(socket_, boost::asio::buffer(buffer.get(), length));
 	buffer[length] = '\0';
-#if defined(_DEBUG) || defined(DEBUG)
-	std::cout << "received: " << bytes_transferred << " bytes of login response" << std::endl;
-#endif
 
 	if( bytes_transferred > 0 )
 	{
@@ -744,8 +738,18 @@ bool grid_node::parse_acl_reply(const std::string &reply)
 
 void grid_node::get_acl()
 {
-	std::string request;
-	request = std::string("<get acl>");
+	std::string request = "<get acl>";
+	boost::uint32_t size = request.size();
+	
+	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), size));
+}
+
+void grid_node::change_password(const std::string &username, const std::string &passwd)
+{
+	std::string request = "<user change_password \"";
+	request += username; request += "\" \"";
+	request += passwd; request += "\">";
 	boost::uint32_t size = request.size();
 	
 	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));

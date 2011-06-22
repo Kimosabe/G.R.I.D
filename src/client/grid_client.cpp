@@ -373,3 +373,21 @@ void grid_client::get_acl()
 
 	std::cerr << "no nodes are active" << std::endl;
 }
+
+void grid_client::change_password(const std::string &username, const std::string &passwd)
+{
+	if (nodes_.size())
+	{
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				(*itr)->change_password(username, passwd);
+				return;
+			}
+		}
+	}
+
+	std::cerr << "no nodes are active" << std::endl;
+}

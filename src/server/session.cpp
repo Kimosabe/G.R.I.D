@@ -360,20 +360,8 @@ bool session::login_request(const std::string &request)
 
 			std::string reply = std::string("<user login \"") + login + std::string("\" status \"ok\">");
 			length = reply.size();
-#if defined(_DEBUG) || defined(DEBUG)
-			std::cout << "sending: " << reply << std::endl;
-			size_t sended = 
-#endif
 			boost::asio::write(socket_, boost::asio::buffer(&length, sizeof(length)));
-#if defined(_DEBUG) || defined(DEBUG)
-			std::cout << "sended: " << sended << " bytes of size" << std::endl;
-			sended = 
-#endif
 			boost::asio::write(socket_, boost::asio::buffer(reply.data(), reply.size()));
-#if defined(_DEBUG) || defined(DEBUG)
-			std::cout << "sended: " << sended << " bytes of reply" << std::endl;
-#endif
-
 			// выдать токен клиенту
 			std::string reply1;
 			reply1 = std::string("<user token \"") + boost::lexical_cast<std::string>(token) + std::string("\">");
@@ -556,6 +544,31 @@ bool session::user_manage_request(const std::string &request)
 					sync_data(std::string("users"), um.getLastModified());
 				}
 			}
+			else if (op == "change_password") //XXX копипаста
+			{
+				int id = um.getId(name);
+				if (id < 0)
+					reply += "user not found\">";
+				else if (um.change_passwd(id, password, true) < 0)
+					reply += "pasword change failed\">";
+				else
+				{
+					reply += "ok\">";
+					sync_data(std::string("users"), um.getLastModified());
+				}
+			}
+			else
+				return false;
+		}
+		else if (op == "change_password" && name == username_) //XXX копипаста
+		{
+			int id = um.getId(name);
+			if (id < 0)
+				reply += "user not found\">";
+			else if (um.change_passwd(id, password, true) < 0)
+				reply += "password change failed\">";
+			else
+				reply += "ok\">";
 		}
 		else
 			reply += std::string("access denied\">");
