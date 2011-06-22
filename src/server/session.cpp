@@ -804,7 +804,7 @@ bool session::timestamp_request(const std::string &request)
 
 bool session::get_request(const std::string &request)
 {
-	const boost::regex re("(?xs)(^<get \\s+ ([\\d\\w\\-_]+)>$)");
+	const boost::regex re("(?xs)(^<get \\s+ ([\\d\\w\\-_]+) \\s* ([\\w\\d]*)>$)");
 
 	boost::smatch match_res;
 	if( boost::regex_match(request, match_res, re) )
@@ -819,10 +819,26 @@ bool session::get_request(const std::string &request)
 		}
 		else if (what == "acl")
 		{
-			Kimo::ACL::ACL_t acl = um.getACL(m_user_id);
-			buffer = "<acl ";
-			buffer += boost::lexical_cast<std::string>(acl);
-			buffer += ">";
+			std::string username = match_res[3];
+			int id = um.getId(username);
+			if (um.isAllowed(m_user_id, Kimo::ACL::PRIV_USERRD) || username == username_)
+			{
+				if (id < 0)
+				{
+					buffer = "<acl \"\" status \"user not found\">";
+				}
+				else
+				{
+					Kimo::ACL::ACL_t acl = um.getACL(id);
+					buffer = "<acl \"";
+					buffer += boost::lexical_cast<std::string>(acl);
+					buffer += "\" status \"ok\">";
+				}
+			}
+			else
+			{
+				buffer = "<acl \"\" status \"access denied\">";
+			}
 		}
 		else if (what == "user_list")
 		{

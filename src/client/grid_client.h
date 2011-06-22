@@ -36,7 +36,7 @@ public:
 	void show_all_processes();
 	void kill(size_t process_num);
 	void kill(const std::string& task_name);
-	void get_acl();
+	void get_acl(const std::string& username);
 	void change_password(const std::string& username, const std::string& passwd);
 	void show_users();
 
@@ -58,7 +58,7 @@ private:
 	lockable_vector<grid_task> tasks_;
 
 	// имя пользователя
-	std::string username;
+	std::string username_;
 	boost::asio::io_service::work work_;
 	long user_token;
 	// задачи на всех нодах

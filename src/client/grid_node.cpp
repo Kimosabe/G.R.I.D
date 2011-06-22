@@ -720,29 +720,42 @@ static void acl_print(Kimo::ACL::ACL_t acl, const char* spriv, Kimo::ACL::PRIVIL
 
 bool grid_node::parse_acl_reply(const std::string &reply)
 {
-	const boost::regex re_status("(?xs)(^<acl \\s+ (.+)>$)");
+	const boost::regex re_status("(?xs)(^<acl \\s+ \"(.*)\" \\s+ status \\s+ \"(.+)\">$)");
 	boost::smatch match_res;
 
 	if( boost::regex_match(reply, match_res, re_status) )
 	{
-		std::string str_acl = match_res[2];
-		Kimo::ACL::ACL_t acl = boost::lexical_cast<Kimo::ACL::ACL_t>(str_acl);
+		std::string str_acl = match_res[2], status = match_res[3];
+		if (status == "ok")
+		{
+			Kimo::ACL::ACL_t acl = boost::lexical_cast<Kimo::ACL::ACL_t>(str_acl);
 
-		acl_print(acl, "login", Kimo::ACL::PRIV_LOGIN);
-		acl_print(acl, "process execution", Kimo::ACL::PRIV_PROCEXEC);
-		acl_print(acl, "reading info about all processes", Kimo::ACL::PRIV_PROCRD);
-		acl_print(acl, "killing any process", Kimo::ACL::PRIV_PROCTERM);
-		acl_print(acl, "reading info about all users", Kimo::ACL::PRIV_USERRD);
-		acl_print(acl, "editing any user profile", Kimo::ACL::PRIV_USERWR);
+			acl_print(acl, "  login", Kimo::ACL::PRIV_LOGIN);
+			acl_print(acl, "  process execution", Kimo::ACL::PRIV_PROCEXEC);
+			acl_print(acl, "  reading info about all processes", Kimo::ACL::PRIV_PROCRD);
+			acl_print(acl, "  killing any process", Kimo::ACL::PRIV_PROCTERM);
+			acl_print(acl, "  reading info about all users", Kimo::ACL::PRIV_USERRD);
+			acl_print(acl, "  editing any user profile", Kimo::ACL::PRIV_USERWR);
+		}
+		else
+		{
+			std::cout << "can't get acl: " << status << std::endl;
+		}
 
 		return true;
 	}
 	return false;
 }
 
-void grid_node::get_acl()
+void grid_node::get_acl(const std::string& username)
 {
-	std::string request = "<get acl>";
+	if (username.empty())
+	{
+		std::cout << "username is empty" << std::endl;
+		return;
+	}
+	std::string request = "<get acl ";
+	request += username; request += ">";
 	boost::uint32_t size = request.size();
 	
 	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));

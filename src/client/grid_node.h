@@ -60,7 +60,7 @@ public:
 	void all_tasks_request(size_t node_id);
 	void get_tasks(Kimo::TaskList& tasks);
 	void kill(const std::string& task_name);
-	void get_acl();
+	void get_acl(const std::string& username);
 	void change_password(const std::string& username, const std::string& passwd);
 	void show_users();
 

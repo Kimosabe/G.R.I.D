@@ -189,6 +189,7 @@ bool grid_client::login(std::string& username, std::string& password)
 				active_found = true;
 				if ((*itr)->login(username, password))
 				{
+					username_ = username;
 					user_token = (*itr)->getToken();
 					// если залогинились, запускаем взаимодецствие со всеми нодами.
 					std::vector<node_ptr>::iterator itr;
@@ -356,7 +357,7 @@ void grid_client::kill(const std::string &task_name)
 	}
 }
 
-void grid_client::get_acl()
+void grid_client::get_acl(const std::string& username)
 {
 	if (nodes_.size())
 	{
@@ -365,7 +366,10 @@ void grid_client::get_acl()
 		{
 			if ((*itr)->is_active())
 			{
-				(*itr)->get_acl();
+				if (username.empty())
+					(*itr)->get_acl(username_);
+				else
+					(*itr)->get_acl(username);
 				return;
 			}
 		}

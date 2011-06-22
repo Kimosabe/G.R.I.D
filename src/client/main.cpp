@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
 			//***********************************************************************
 			else if( user_command == menu[GET_ACL].command )
 			{
-				gc.get_acl();
+				gc.get_acl(task_name);
 			}
 			//***********************************************************************
 			else if( user_command == menu[SHOW_USERS].command )
