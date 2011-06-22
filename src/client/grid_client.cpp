@@ -195,8 +195,11 @@ bool grid_client::login(std::string& username, std::string& password)
 					std::vector<node_ptr>::iterator itr;
 					for (itr = nodes_.begin(); itr != nodes_.end(); ++itr)
 					{
-						(*itr)->setToken(user_token);
-						(*itr)->start();
+						if ((*itr)->is_active())
+						{
+							(*itr)->setToken(user_token);
+							(*itr)->start();
+						}
 					}
 					return true;
 				}
