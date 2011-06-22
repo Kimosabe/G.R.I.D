@@ -21,6 +21,8 @@ UsersManager::UsersManager(const String& users_path, const std::string& passwd)
 		
 		int id = addUser(root, password, true);
 		allow(id, Kimo::ACL::PRIV_ALLPRIV);
+		setLastModified(0);
+		saveUsers();
 	}
 	else
 	{
