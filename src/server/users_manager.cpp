@@ -441,3 +441,18 @@ int UsersManager::change_passwd(int id, const std::string& password, bool passwo
 
 	return 0;
 }
+
+void UsersManager::getUserList(Kimo::UserInfoList& list)
+{
+	Kimo::UserInfo usi;
+	Users::iterator itr = m_users_storage.users.begin();
+	for(; itr != m_users_storage.users.end(); ++itr)
+	{
+		if (itr->id >= 0)
+		{
+			usi.id = itr->id;
+			usi.name = itr->login;
+			list.push_back(usi);
+		}
+	}
+}

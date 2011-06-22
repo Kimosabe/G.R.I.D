@@ -232,6 +232,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\..\src\shared\user_list.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\..\src\server\users_manager.cpp"
 				>
 			</File>
@@ -299,6 +303,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\server\transaction.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\shared\user_list.h"
 				>
 			</File>
 			<File

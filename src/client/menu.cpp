@@ -20,6 +20,7 @@ menu_t get_menu()
 	menu[KILL_TASK] = menu_item("kill_task", "kill_task <taskname> - kills your task");
 	menu[GET_ACL] = menu_item("get_acl", "displays your privileges");
 	menu[CHANGE_PASSWORD] = menu_item("change_password", "change_password <username> - changing password for <username>");
+	menu[SHOW_USERS] = menu_item("show_users", "displays all users in grid");
 
 	return menu;
 }

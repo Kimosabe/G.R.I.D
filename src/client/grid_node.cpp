@@ -9,6 +9,8 @@
 #include <boost/asio/read.hpp>
 #include <cryptopp\ripemd.h>
 #include <cryptopp\hex.h>
+#include <msgpack.hpp>
+#include "user_list.h"
 
 grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const std::stack<int> &ports,
 					 const int number, task_table_t &task_table, tasks_t &tasks) : 
@@ -142,6 +144,8 @@ void grid_node::handle_read_body(const boost::system::error_code& error)
 		else if ( parse_kill_reply(request) )
 			;
 		else if ( parse_acl_reply(request) )
+			;
+		else if ( parse_show_users_reply(request) )
 			;
 		else
 			std::cout << request << std::endl;
@@ -754,4 +758,45 @@ void grid_node::change_password(const std::string &username, const std::string &
 	
 	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
 	boost::asio::write(socket_, boost::asio::buffer(request.data(), size));
+}
+
+void grid_node::show_users()
+{
+	std::string request = "<get user_list>";
+	boost::uint32_t size = request.size();
+	
+	boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+	boost::asio::write(socket_, boost::asio::buffer(request.data(), size));
+}
+
+bool grid_node::parse_show_users_reply(const std::string &reply)
+{
+	const boost::regex re_status("(?xs)(^<users \\s+ status \\s+ \"(.+)\" \\s+ list \\s+ \"(.*)\">$)");
+	boost::smatch match_res;
+
+	if( boost::regex_match(reply, match_res, re_status) )
+	{
+		std::string status = match_res[2], data = match_res[3];
+		if (status == "ok")
+		{
+			msgpack::unpacked unpacked;
+			msgpack::unpack(&unpacked, data.data(), data.size());
+			Kimo::UserInfoList user_list;
+			unpacked.get().convert(&user_list);
+
+			Kimo::UserInfoList::iterator itr = user_list.begin();
+			std::cout << "#\tusername" << std::endl;
+			for (; itr != user_list.end(); ++itr)
+			{
+				std::cout << itr->id << "\t" << itr->name << std::endl;
+			}
+		}
+		else
+		{
+			std::cout << "can't get user list: " << status << std::endl;
+		}
+
+		return true;
+	}
+	return false;
 }

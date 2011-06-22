@@ -313,6 +313,11 @@ int main(int argc, char *argv[])
 				gc.get_acl();
 			}
 			//***********************************************************************
+			else if( user_command == menu[SHOW_USERS].command )
+			{
+				gc.show_users();
+			}
+			//***********************************************************************
 			else if( user_command == menu[CHANGE_PASSWORD].command )
 			{
 				do

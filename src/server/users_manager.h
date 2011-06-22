@@ -13,6 +13,7 @@
 #include <cryptopp\ripemd.h>
 
 #include "acl.h"
+#include "user_list.h"
 
 using Kimo::ACL;
 
@@ -51,6 +52,7 @@ public:
 	bool isDenied(int id, const ACL::PRIVILEGE privilege);
 	void allow(int id, const ACL::PRIVILEGE privilege);
 	void deny(int id, const ACL::PRIVILEGE privilege);
+	void getUserList(Kimo::UserInfoList& list);
 
 	int serialize(msgpack::sbuffer& buffer);
 	int deserialize(msgpack::sbuffer& buffer);

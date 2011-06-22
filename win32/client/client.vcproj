@@ -219,6 +219,10 @@
 				RelativePath="..\..\src\client\task_status_record.cpp"
 				>
 			</File>
+			<File
+				RelativePath="..\..\src\shared\user_list.cpp"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
@@ -275,6 +279,10 @@
 			</File>
 			<File
 				RelativePath="..\..\src\client\task_status_record.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\src\shared\user_list.h"
 				>
 			</File>
 		</Filter>

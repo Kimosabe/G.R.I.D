@@ -391,3 +391,21 @@ void grid_client::change_password(const std::string &username, const std::string
 
 	std::cerr << "no nodes are active" << std::endl;
 }
+
+void grid_client::show_users()
+{
+	if (nodes_.size())
+	{
+		Nodes::iterator itr = nodes_.begin();
+		for (; itr != nodes_.end(); ++itr)
+		{
+			if ((*itr)->is_active())
+			{
+				(*itr)->show_users();
+				return;
+			}
+		}
+	}
+
+	std::cerr << "no nodes are active" << std::endl;
+}

@@ -824,6 +824,23 @@ bool session::get_request(const std::string &request)
 			buffer += boost::lexical_cast<std::string>(acl);
 			buffer += ">";
 		}
+		else if (what == "user_list")
+		{
+			if (um.isAllowed(m_user_id, Kimo::ACL::PRIV_USERRD))
+			{
+				Kimo::UserInfoList list;
+				um.getUserList(list);
+				msgpack::sbuffer sbuffer;
+				msgpack::pack(sbuffer, list);
+				buffer = "<users status \"ok\" list \"";
+				buffer.append(sbuffer.data(), sbuffer.size());
+				buffer += "\">";
+			}
+			else
+			{
+				buffer = "users status \"access denied\" list "">";
+			}
+		}
 		else
 			return false;
 

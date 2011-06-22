@@ -38,6 +38,7 @@ public:
 	void kill(const std::string& task_name);
 	void get_acl();
 	void change_password(const std::string& username, const std::string& passwd);
+	void show_users();
 
 	const std::string task_status_message(const std::string &taskname) const;
 	// вектор пар <имя задания, статус> 
