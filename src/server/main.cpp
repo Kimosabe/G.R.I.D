@@ -13,7 +13,7 @@ std::string os;
 
 int main(int argc, char* argv[])
 {
-	setlocale(LC_ALL, "Rusian");
+	setlocale(LC_ALL, "Russian");
 	try
 	{
 		if (argc != 2)
