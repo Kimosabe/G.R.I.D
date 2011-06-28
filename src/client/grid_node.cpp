@@ -12,6 +12,10 @@
 #include <msgpack.hpp>
 #include "user_list.h"
 
+#if defined(WIN32) || defined(WIN64)
+#include <windows.h>
+#endif
+
 grid_node::grid_node(boost::asio::io_service &io_serv, const std::string &address, const std::stack<int> &ports,
 					 const int number, task_table_t &task_table, tasks_t &tasks) : 
 						io_serv_(io_serv), socket_(io_serv), active(false), address_(address), file_tr_(),
@@ -713,9 +717,25 @@ static void acl_print(Kimo::ACL::ACL_t acl, const char* spriv, Kimo::ACL::PRIVIL
 {
 	std::cout << spriv << " is ";
 	if (acl & priv)
+	{
+#if defined(WIN32) || defined(WIN64)
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 2);
+#endif
 		std::cout << "allowed" << std::endl;
+#if defined(WIN32) || defined(WIN64)
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+#endif
+	}
 	else
+	{
+#if defined(WIN32) || defined(WIN64)
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 4);
+#endif
 		std::cout << "denied" << std::endl;
+#if defined(WIN32) || defined(WIN64)
+		SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 7);
+#endif
+	}
 }
 
 bool grid_node::parse_acl_reply(const std::string &reply)
